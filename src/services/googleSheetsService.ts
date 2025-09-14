@@ -120,14 +120,15 @@ export class GoogleSheetsService {
     console.log('Doctors headers:', headers);
     console.log('Doctors rows:', rows);
     
+    // Map ตาม column ที่เห็นจริงใน Google Sheets: Id, Name, Specialty, Department, Avatar Url, Created At, Updated At
     return rows.map((row, index) => ({
-      id: (index + 1).toString(),
-      name: row[0] || '',
-      specialty: row[1] || '',
-      department: row[2] || '',
-      avatar_url: row[3] || '',
-      created_at: row[4] || new Date().toISOString(),
-      updated_at: row[5] || new Date().toISOString()
+      id: row[0] || (index + 1).toString(), // ใช้ Id จาก column แรก
+      name: row[1] || '', // Name จาก column ที่ 2
+      specialty: row[2] || '', // Specialty จาก column ที่ 3  
+      department: row[3] || '', // Department จาก column ที่ 4
+      avatar_url: row[4] || '', // Avatar Url จาก column ที่ 5
+      created_at: row[5] || new Date().toISOString(), // Created At จาก column ที่ 6
+      updated_at: row[6] || new Date().toISOString() // Updated At จาก column ที่ 7
     }));
   }
 
