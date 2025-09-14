@@ -133,15 +133,15 @@ export class GoogleSheetsService {
   }
 
   async getMonthlyData() {
-    const data = await this.fetchSheetData('doctor_monthly_data'); // ใช้ชื่อแท็บที่ถูกต้อง
+    const data = await this.fetchSheetData('doctor_monthly_data');
     console.log('Raw monthly data:', data);
-    if (data.length <= 1) return []; // ไม่มีข้อมูลหรือมีแค่ header
+    if (data.length <= 1) return []; 
     
     const [headers, ...rows] = data;
     console.log('Monthly headers:', headers);
     console.log('Monthly rows:', rows);
     
-    // Map ตาม column ที่เห็นจริงใน Google Sheets: id, doctor_id, month, year, rlu_score, cost_savings, test_reduction, patients_count, total_tests, ...
+    // Map ตาม column ที่เห็นจริงใน Google Sheets: id, doctor_id, month, year, rlu_score, cost_savings, test_reduction, patients_count, total_tests
     return rows.map(row => ({
       id: row[0] || '',
       doctor_id: row[1] || '',
@@ -152,16 +152,16 @@ export class GoogleSheetsService {
       test_reduction: parseFloat(row[6]) || 0,
       patients_count: parseInt(row[7]) || 0,
       total_tests: parseInt(row[8]) || 0,
-      // เพิ่มข้อมูลเพิ่มเติมตามที่มีใน Google Sheets
+      // คำนวณค่าอื่นๆ จากข้อมูลพื้นฐาน
       total_patient: parseInt(row[7]) || 0, // ใช้ patients_count
       total_lab: parseInt(row[8]) || 0, // ใช้ total_tests
-      lp_ratio: parseFloat(row[8]) > 0 && parseInt(row[7]) > 0 ? parseFloat(row[8]) / parseInt(row[7]) : 0, // คำนวณจาก total_tests/patients
-      cpg_mismatch_percentage: Math.random() * 10, // mock data สำหรับตอนนี้
-      duplicate_order_rate: Math.random() * 5, // mock data สำหรับตอนนี้
-      estimated_cost: parseFloat(row[5]) * 1.2 || 0, // คำนวณจาก cost_savings
-      cp_ratio: Math.random() * 0.8, // mock data สำหรับตอนนี้
-      duplicate_tests: Math.floor(Math.random() * 10), // mock data สำหรับตอนนี้
-      cpg_mismatch: Math.floor(Math.random() * 5) // mock data สำหรับตอนนี้
+      lp_ratio: (parseInt(row[8]) || 0) > 0 && (parseInt(row[7]) || 0) > 0 ? (parseInt(row[8]) / parseInt(row[7])) : 0,
+      cpg_mismatch_percentage: Math.random() * 15 + 5, // mock data 5-20%
+      duplicate_order_rate: Math.random() * 8 + 2, // mock data 2-10%
+      estimated_cost: (parseFloat(row[5]) || 0) * 1.5, // คำนวณจาก cost_savings
+      cp_ratio: Math.random() * 0.6 + 0.2, // mock data 0.2-0.8
+      duplicate_tests: Math.floor(Math.random() * 15 + 5), // mock data 5-20
+      cpg_mismatch: Math.floor(Math.random() * 8 + 2) // mock data 2-10
     }));
   }
 
