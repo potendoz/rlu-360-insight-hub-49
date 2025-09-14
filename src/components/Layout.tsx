@@ -111,6 +111,15 @@ export const Layout = ({ children }: LayoutProps) => {
       <main className="container mx-auto px-4 py-6">
         {children}
       </main>
+
+      {/* Footer */}
+      <footer className="bg-card border-t border-border mt-auto">
+        <div className="container mx-auto px-4 py-4">
+          <div className="text-center text-sm text-muted-foreground">
+            Copyright © 2025 Sriwarit Siriatiyut. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
