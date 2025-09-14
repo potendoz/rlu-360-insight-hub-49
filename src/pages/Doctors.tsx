@@ -293,7 +293,21 @@ export const Doctors = () => {
             {filteredDoctors.map((doctor) => (
               <DoctorCard
                 key={doctor.id}
-                doctor={doctor}
+                doctor={{
+                  id: doctor.id,
+                  name: doctor.name || 'Unknown',
+                  department: doctor.department || 'Unknown',
+                  avatar: doctor.avatar_url || '',
+                  score: doctor.rlu_score || 0,
+                  cpgMismatch: doctor.cpg_mismatch_percentage || 0,
+                  duplicateOrder: doctor.duplicate_order_rate || 0,
+                  cpRatio: doctor.cp_ratio || 0,
+                  specialization: doctor.specialty || 'Unknown',
+                  lastReview: 'N/A'
+                }}
+                onViewDetails={(doctorId) => {
+                  console.log('View details for doctor:', doctorId);
+                }}
               />
             ))}
           </div>

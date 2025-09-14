@@ -21,14 +21,7 @@ export const AdvancedAI = () => {
   const { loading, chartData, kpiMetrics } = useAdvancedAI();
 
   const getKPIData = (kpi: string) => {
-    switch (kpi) {
-      case 'rlu-score': return chartData.rluScore;
-      case 'lp-ratio': return chartData.lpRatio;
-      case 'cpg-mismatch': return chartData.cpgMismatch;
-      case 'duplicate-order': return chartData.duplicateOrder;
-      case 'cp-ratio': return chartData.cpRatio;
-      default: return chartData.rluScore;
-    }
+    return chartData[kpi] || [];
   };
 
   const getKPITitle = (kpi: string) => {
@@ -141,19 +134,18 @@ export const AdvancedAI = () => {
 
             {/* Current KPI Metrics */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
-              {kpiMetrics.map((metric, index) => (
+              {Object.entries(kpiMetrics).map(([key, metric]) => (
                 <div 
-                  key={index} 
+                  key={key} 
                   className={`p-4 rounded-lg border transition-all cursor-pointer ${
-                    selectedKPI === 
-                    ['rlu-score', 'lp-ratio', 'cpg-mismatch', 'duplicate-order', 'cp-ratio'][index]
+                    selectedKPI === key
                       ? 'bg-primary/10 border-primary' 
                       : 'bg-muted/30 hover:bg-muted/50'
                   }`}
-                  onClick={() => setSelectedKPI(['rlu-score', 'lp-ratio', 'cpg-mismatch', 'duplicate-order', 'cp-ratio'][index])}
+                  onClick={() => setSelectedKPI(key)}
                 >
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">{metric.name}</p>
+                    <p className="text-xs text-muted-foreground mb-1">{getKPITitle(key)}</p>
                     <p className="text-lg font-bold text-foreground">{metric.current}</p>
                     <div className="flex items-center justify-center gap-1 mt-1">
                       {metric.trend === 'up' ? (
@@ -167,7 +159,7 @@ export const AdvancedAI = () => {
                     </div>
                     <div className="mt-2">
                       <div className={`text-xs font-medium ${metric.difference >= 0 ? 'text-success' : 'text-destructive'}`}>
-                        {metric.difference >= 0 ? '+' : ''}{metric.difference.toFixed(1)}
+                        {metric.difference >= 0 ? '+' : ''}{metric.difference.toFixed ? metric.difference.toFixed(1) : metric.difference}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Change vs current
