@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { googleSheetsService } from '@/services/googleSheetsService';
 
 interface MonthlyData {
   month: string;
@@ -8,16 +8,16 @@ interface MonthlyData {
   cpg_mismatch_percentage: number;
   duplicate_order_rate: number;
   cp_ratio: number;
+  cost_savings: number;
 }
 
 interface PredictiveData {
   month: string;
   actual: number | null;
-  predicted: number;
+  predicted: number | null;
 }
 
 interface KPIMetric {
-  name: string;
   current: number;
   predicted: number;
   target: number;
@@ -28,244 +28,259 @@ interface KPIMetric {
 const MONTH_ORDER = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export const useAdvancedAI = () => {
-  const [loading, setLoading] = useState(true);
-  const [chartData, setChartData] = useState<{
-    rluScore: PredictiveData[];
-    lpRatio: PredictiveData[];
-    cpgMismatch: PredictiveData[];
-    duplicateOrder: PredictiveData[];
-    cpRatio: PredictiveData[];
-  }>({
-    rluScore: [],
-    lpRatio: [],
-    cpgMismatch: [],
-    duplicateOrder: [],
-    cpRatio: []
-  });
-  const [kpiMetrics, setKpiMetrics] = useState<KPIMetric[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [chartData, setChartData] = useState<Record<string, PredictiveData[]>>({});
+  const [kpiMetrics, setKpiMetrics] = useState<Record<string, KPIMetric>>({});
 
-  // Simple linear regression for prediction
+  // Simple linear regression for predictions
   const predictNextValue = (values: number[], periods: number = 3): number[] => {
-    if (values.length < 2) {
-      const lastValue = values[values.length - 1] || 0;
-      return Array(periods).fill(lastValue);
-    }
-    
+    if (values.length < 2) return Array(periods).fill(values[0] || 0);
+
     const n = values.length;
-    const x = Array.from({ length: n }, (_, i) => i + 1);
-    const y = values;
-    
-    const sumX = x.reduce((a, b) => a + b, 0);
-    const sumY = y.reduce((a, b) => a + b, 0);
-    const sumXY = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
-    const sumXX = x.reduce((acc, xi) => acc + xi * xi, 0);
-    
-    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-    const intercept = (sumY - slope * sumX) / n;
-    
-    const predictions: number[] = [];
+    const xSum = (n * (n + 1)) / 2;
+    const xxSum = (n * (n + 1) * (2 * n + 1)) / 6;
+    const ySum = values.reduce((sum, val) => sum + val, 0);
+    const xySum = values.reduce((sum, val, index) => sum + val * (index + 1), 0);
+
+    const slope = (n * xySum - xSum * ySum) / (n * xxSum - xSum * xSum);
+    const intercept = (ySum - slope * xSum) / n;
+
+    const predictions = [];
     for (let i = 1; i <= periods; i++) {
-      predictions.push(slope * (n + i) + intercept);
+      const predicted = slope * (n + i) + intercept;
+      predictions.push(Math.max(0, predicted)); // Ensure non-negative
     }
-    
+
     return predictions;
   };
 
   const calculateAccuracy = (actual: number[], predicted: number[]) => {
-    if (actual.length === 0 || predicted.length === 0) return 95;
+    if (actual.length !== predicted.length) return 0;
     
-    const errors = actual.map((val, i) => Math.abs(val - predicted[i]) / val);
-    const mape = errors.reduce((a, b) => a + b, 0) / errors.length;
-    return Math.max(85, Math.min(99, 100 - mape * 100));
+    const errors = actual.map((val, index) => Math.abs(val - predicted[index]));
+    const mape = errors.reduce((sum, error, index) => 
+      sum + (actual[index] !== 0 ? error / Math.abs(actual[index]) : 0), 0
+    ) / actual.length;
+    
+    return Math.max(0, 1 - mape); // Convert to accuracy (0-1)
   };
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        // Check if Google Sheets is configured
-        const savedSheetId = localStorage.getItem('googleSheetId');
-        if (!savedSheetId) {
-          // Fallback to Supabase if Google Sheets not configured
-          const { data, error } = await supabase
-            .from('doctor_monthly_data')
-            .select('*')
-            .order('year', { ascending: true })
-            .order('month', { ascending: true });
-
-          if (error) throw error;
-          if (!data || data.length === 0) return;
-
-          processData(data);
+        console.log("useAdvancedAI: Fetching data from Google Sheets...");
+        
+        if (!googleSheetsService.isConfigured()) {
+          console.log("Google Sheets not configured");
+          setLoading(false);
           return;
         }
 
-        // Use Google Sheets data
-        const { googleSheetsService } = await import('@/services/googleSheetsService');
-        const data = await googleSheetsService.getMonthlyData();
+        // ดึงข้อมูลจาก Google Sheets
+        const monthlyData = await googleSheetsService.getMonthlyData();
         
-        if (!data || data.length === 0) return;
-        processData(data);
+        console.log("useAdvancedAI: Monthly data from sheets:", monthlyData);
 
+        if (!monthlyData || monthlyData.length === 0) {
+          console.log("No monthly data available");
+          setLoading(false);
+          return;
+        }
+
+        // คำนวณข้อมูลสำหรับ 3 เดือนที่ผ่านมา
+        const currentDate = new Date();
+        const last3Months = [];
+        
+        for (let i = 2; i >= 0; i--) {
+          const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+          last3Months.push({
+            month: date.toLocaleString('en', { month: 'long' }).toLowerCase(),
+            year: date.getFullYear()
+          });
+        }
+
+        // คำนวณค่าเฉลี่ยรายเดือน
+        const monthlyAverages = last3Months.map(period => {
+          const monthData = monthlyData.filter(data => 
+            data.month?.toLowerCase() === period.month && 
+            data.year.toString() === period.year.toString()
+          );
+
+          const avg = {
+            month: period.month.charAt(0).toUpperCase() + period.month.slice(1),
+            rluScore: monthData.length > 0 ? 
+              monthData.reduce((sum, d) => sum + (d.rlu_score || 0), 0) / monthData.length : 0,
+            lpRatio: monthData.length > 0 ? 
+              monthData.reduce((sum, d) => sum + (d.lp_ratio || 0), 0) / monthData.length : 0,
+            costSavings: monthData.length > 0 ? 
+              monthData.reduce((sum, d) => sum + (d.cost_savings || 0), 0) / monthData.length : 0,
+            cpgMismatch: monthData.length > 0 ? 
+              monthData.reduce((sum, d) => sum + (d.cpg_mismatch_percentage || 0), 0) / monthData.length : 0,
+            duplicateRate: monthData.length > 0 ? 
+              monthData.reduce((sum, d) => sum + (d.duplicate_order_rate || 0), 0) / monthData.length : 0,
+            cpRatio: monthData.length > 0 ? 
+              monthData.reduce((sum, d) => sum + (d.cp_ratio || 0), 0) / monthData.length : 0,
+          };
+          
+          return avg;
+        });
+
+        console.log("useAdvancedAI: Monthly averages:", monthlyAverages);
+
+        // สร้างการคาดการณ์สำหรับ 3 เดือนข้างหน้า
+        const predictions = {
+          rluScore: predictNextValue(monthlyAverages.map(m => m.rluScore)),
+          lpRatio: predictNextValue(monthlyAverages.map(m => m.lpRatio)),
+          costSavings: predictNextValue(monthlyAverages.map(m => m.costSavings)),
+          cpgMismatch: predictNextValue(monthlyAverages.map(m => m.cpgMismatch)),
+          duplicateRate: predictNextValue(monthlyAverages.map(m => m.duplicateRate)),
+          cpRatio: predictNextValue(monthlyAverages.map(m => m.cpRatio)),
+        };
+
+        // สร้างข้อมูลสำหรับกราฟ
+        const futureMonths = [];
+        for (let i = 1; i <= 3; i++) {
+          const futureDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+          futureMonths.push(futureDate.toLocaleString('en', { month: 'long' }));
+        }
+
+        const newChartData = {
+          'rlu-score': monthlyAverages.map((data, index) => ({
+            month: data.month,
+            actual: Math.round(data.rluScore * 100) / 100,
+            predicted: null
+          })).concat(futureMonths.map((month, index) => ({
+            month,
+            actual: null,
+            predicted: Math.round(predictions.rluScore[index] * 100) / 100
+          }))),
+          'lp-ratio': monthlyAverages.map((data, index) => ({
+            month: data.month,
+            actual: Math.round(data.lpRatio * 100) / 100,
+            predicted: null
+          })).concat(futureMonths.map((month, index) => ({
+            month,
+            actual: null,
+            predicted: Math.round(predictions.lpRatio[index] * 100) / 100
+          }))),
+          'cost-savings': monthlyAverages.map((data, index) => ({
+            month: data.month,
+            actual: Math.round(data.costSavings),
+            predicted: null
+          })).concat(futureMonths.map((month, index) => ({
+            month,
+            actual: null,
+            predicted: Math.round(predictions.costSavings[index])
+          }))),
+          'cpg-mismatch': monthlyAverages.map((data, index) => ({
+            month: data.month,
+            actual: Math.round(data.cpgMismatch * 100) / 100,
+            predicted: null
+          })).concat(futureMonths.map((month, index) => ({
+            month,
+            actual: null,
+            predicted: Math.round(predictions.cpgMismatch[index] * 100) / 100
+          }))),
+          'duplicate-rate': monthlyAverages.map((data, index) => ({
+            month: data.month,
+            actual: Math.round(data.duplicateRate * 100) / 100,
+            predicted: null
+          })).concat(futureMonths.map((month, index) => ({
+            month,
+            actual: null,
+            predicted: Math.round(predictions.duplicateRate[index] * 100) / 100
+          }))),
+          'cp-ratio': monthlyAverages.map((data, index) => ({
+            month: data.month,
+            actual: Math.round(data.cpRatio * 100) / 100,
+            predicted: null
+          })).concat(futureMonths.map((month, index) => ({
+            month,
+            actual: null,
+            predicted: Math.round(predictions.cpRatio[index] * 100) / 100
+          })))
+        };
+
+        setChartData(newChartData);
+
+        // คำนวณ KPI Metrics
+        const currentValues = {
+          rluScore: monthlyAverages[monthlyAverages.length - 1]?.rluScore || 0,
+          lpRatio: monthlyAverages[monthlyAverages.length - 1]?.lpRatio || 0,
+          costSavings: monthlyAverages[monthlyAverages.length - 1]?.costSavings || 0,
+          cpgMismatch: monthlyAverages[monthlyAverages.length - 1]?.cpgMismatch || 0,
+          duplicateRate: monthlyAverages[monthlyAverages.length - 1]?.duplicateRate || 0,
+          cpRatio: monthlyAverages[monthlyAverages.length - 1]?.cpRatio || 0,
+        };
+
+        const predictedValues = {
+          rluScore: predictions.rluScore[2] || 0,
+          lpRatio: predictions.lpRatio[2] || 0,
+          costSavings: predictions.costSavings[2] || 0,
+          cpgMismatch: predictions.cpgMismatch[2] || 0,
+          duplicateRate: predictions.duplicateRate[2] || 0,
+          cpRatio: predictions.cpRatio[2] || 0,
+        };
+
+        const newKpiMetrics = {
+          'rlu-score': {
+            current: Math.round(currentValues.rluScore * 100) / 100,
+            predicted: Math.round(predictedValues.rluScore * 100) / 100,
+            target: 85,
+            trend: (predictedValues.rluScore > currentValues.rluScore ? 'up' : 'down') as 'up' | 'down',
+            difference: Math.round((predictedValues.rluScore - currentValues.rluScore) * 100) / 100
+          },
+          'lp-ratio': {
+            current: Math.round(currentValues.lpRatio * 100) / 100,
+            predicted: Math.round(predictedValues.lpRatio * 100) / 100,
+            target: 3.5,
+            trend: (predictedValues.lpRatio > currentValues.lpRatio ? 'up' : 'down') as 'up' | 'down',
+            difference: Math.round((predictedValues.lpRatio - currentValues.lpRatio) * 100) / 100
+          },
+          'cost-savings': {
+            current: Math.round(currentValues.costSavings),
+            predicted: Math.round(predictedValues.costSavings),
+            target: 50000,
+            trend: (predictedValues.costSavings > currentValues.costSavings ? 'up' : 'down') as 'up' | 'down',
+            difference: Math.round(predictedValues.costSavings - currentValues.costSavings)
+          },
+          'cpg-mismatch': {
+            current: Math.round(currentValues.cpgMismatch * 100) / 100,
+            predicted: Math.round(predictedValues.cpgMismatch * 100) / 100,
+            target: 5,
+            trend: (predictedValues.cpgMismatch < currentValues.cpgMismatch ? 'up' : 'down') as 'up' | 'down',
+            difference: Math.round((currentValues.cpgMismatch - predictedValues.cpgMismatch) * 100) / 100
+          },
+          'duplicate-rate': {
+            current: Math.round(currentValues.duplicateRate * 100) / 100,
+            predicted: Math.round(predictedValues.duplicateRate * 100) / 100,
+            target: 2,
+            trend: (predictedValues.duplicateRate < currentValues.duplicateRate ? 'up' : 'down') as 'up' | 'down',
+            difference: Math.round((currentValues.duplicateRate - predictedValues.duplicateRate) * 100) / 100
+          },
+          'cp-ratio': {
+            current: Math.round(currentValues.cpRatio * 100) / 100,
+            predicted: Math.round(predictedValues.cpRatio * 100) / 100,
+            target: 1.5,
+            trend: (predictedValues.cpRatio > currentValues.cpRatio ? 'up' : 'down') as 'up' | 'down',
+            difference: Math.round((predictedValues.cpRatio - currentValues.cpRatio) * 100) / 100
+          }
+        };
+
+        setKpiMetrics(newKpiMetrics);
+        
+        console.log("useAdvancedAI: Processing completed successfully");
+        
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("useAdvancedAI: Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    const processData = (data: any[]) => {
-      // Get unique month-year combinations and sort them chronologically
-      const monthYearCombinations = [...new Set(data.map((record: any) => `${record.month}-${record.year}`))];
-      
-      const sortedMonthYears = monthYearCombinations.sort((a, b) => {
-        const [monthA, yearA] = a.split('-');
-        const [monthB, yearB] = b.split('-');
-        
-        // First sort by year
-        if (parseInt(yearA) !== parseInt(yearB)) {
-          return parseInt(yearA) - parseInt(yearB);
-        }
-        
-        // Then sort by month within the same year
-        const monthIndexA = MONTH_ORDER.indexOf(monthA);
-        const monthIndexB = MONTH_ORDER.indexOf(monthB);
-        return monthIndexA - monthIndexB;
-      });
+    fetchData();
+  }, []);
 
-      // Take the last 3 available month-year combinations
-      const last3MonthYears = sortedMonthYears.slice(-3);
-
-      // Group data by month-year and calculate averages for the last 3 periods
-      const monthlyAverages = last3MonthYears.reduce((acc: Record<string, MonthlyData>, monthYear: string) => {
-        const [month, year] = monthYear.split('-');
-        const monthData = data.filter((record: any) => record.month === month && record.year === parseInt(year));
-        const count = monthData.length;
-        
-        if (count > 0) {
-          acc[monthYear] = {
-            month: `${month} ${year}`, // Include year in display
-            rlu_score: monthData.reduce((sum: number, record: any) => sum + (record.rlu_score || 0), 0) / count,
-            lp_ratio: monthData.reduce((sum: number, record: any) => sum + (record.lp_ratio || 0), 0) / count,
-            cpg_mismatch_percentage: monthData.reduce((sum: number, record: any) => sum + (record.cpg_mismatch_percentage || 0), 0) / count,
-            duplicate_order_rate: monthData.reduce((sum: number, record: any) => sum + (record.duplicate_order_rate || 0), 0) / count,
-            cp_ratio: monthData.reduce((sum: number, record: any) => sum + (record.cp_ratio || 0), 0) / count,
-          };
-        }
-        
-        return acc;
-      }, {});
-
-        // Get ordered data for the last 3 month-year periods
-        const orderedMonthlyData = last3MonthYears.map(monthYear => monthlyAverages[monthYear]).filter(Boolean);
-
-        // Extract values for predictions
-        const rluValues = orderedMonthlyData.map((m: any) => m.rlu_score);
-        const lpValues = orderedMonthlyData.map((m: any) => m.lp_ratio);
-        const cpgValues = orderedMonthlyData.map((m: any) => m.cpg_mismatch_percentage);
-        const duplicateValues = orderedMonthlyData.map((m: any) => m.duplicate_order_rate);
-        const cpValues = orderedMonthlyData.map((m: any) => m.cp_ratio);
-
-        // Generate predictions for next 3 months
-        const rluPredictions = predictNextValue(rluValues);
-        const lpPredictions = predictNextValue(lpValues);
-        const cpgPredictions = predictNextValue(cpgValues);
-        const duplicatePredictions = predictNextValue(duplicateValues);
-        const cpPredictions = predictNextValue(cpValues);
-
-        // Future months (next 3 months after the latest available)
-        const nextMonths = ['August 2025', 'September 2025', 'October 2025'];
-        
-        const createChartData = (actualValues: number[], predictions: number[], months: string[]) => {
-          const result: PredictiveData[] = [];
-          
-          // Add historical data (last 3 months)
-          months.forEach((month, index) => {
-            result.push({
-              month: month.split(' ')[0].substring(0, 3), // Show just month abbreviation
-              actual: actualValues[index] || null,
-              predicted: actualValues[index] || 0
-            });
-          });
-          
-          // Add predictions (next 3 months)
-          nextMonths.forEach((month, index) => {
-            result.push({
-              month: month.split(' ')[0].substring(0, 3), // Show just month abbreviation
-              actual: null,
-              predicted: predictions[index] || 0
-            });
-          });
-          
-          return result;
-        };
-
-        const historicalMonths = orderedMonthlyData.map((m: any) => m.month);
-
-        setChartData({
-          rluScore: createChartData(rluValues, rluPredictions, historicalMonths),
-          lpRatio: createChartData(lpValues, lpPredictions, historicalMonths),
-          cpgMismatch: createChartData(cpgValues, cpgPredictions, historicalMonths),
-          duplicateOrder: createChartData(duplicateValues, duplicatePredictions, historicalMonths),
-          cpRatio: createChartData(cpValues, cpPredictions, historicalMonths)
-        });
-
-        // Create KPI metrics
-        const currentRlu = rluValues[rluValues.length - 1] || 0;
-        const currentLp = lpValues[lpValues.length - 1] || 0;
-        const currentCpg = cpgValues[cpgValues.length - 1] || 0;
-        const currentDuplicate = duplicateValues[duplicateValues.length - 1] || 0;
-        const currentCp = cpValues[cpValues.length - 1] || 0;
-
-        setKpiMetrics([
-          {
-            name: 'RLU Score',
-            current: Number(currentRlu.toFixed(1)),
-            predicted: Number(rluPredictions[0]?.toFixed(1) || 0),
-            target: Number(rluPredictions[0]?.toFixed(1) || 0),
-            trend: rluPredictions[0] > currentRlu ? 'up' : 'down',
-            difference: Number((rluPredictions[0] - currentRlu).toFixed(1))
-          },
-          {
-            name: 'L/P Ratio',
-            current: Number(currentLp.toFixed(1)),
-            predicted: Number(lpPredictions[0]?.toFixed(1) || 0),
-            target: Number(lpPredictions[0]?.toFixed(1) || 0),
-            trend: lpPredictions[0] < currentLp ? 'down' : 'up',
-            difference: Number((lpPredictions[0] - currentLp).toFixed(1))
-          },
-          {
-            name: 'CPG Mismatch (%)',
-            current: Number(currentCpg.toFixed(1)),
-            predicted: Number(cpgPredictions[0]?.toFixed(1) || 0),
-            target: Number(cpgPredictions[0]?.toFixed(1) || 0),
-            trend: cpgPredictions[0] < currentCpg ? 'down' : 'up',
-            difference: Number((cpgPredictions[0] - currentCpg).toFixed(1))
-          },
-          {
-            name: 'Duplicate Order (%)',
-            current: Number(currentDuplicate.toFixed(1)),
-            predicted: Number(duplicatePredictions[0]?.toFixed(1) || 0),
-            target: Number(duplicatePredictions[0]?.toFixed(1) || 0),
-            trend: duplicatePredictions[0] < currentDuplicate ? 'down' : 'up',
-            difference: Number((duplicatePredictions[0] - currentDuplicate).toFixed(1))
-          },
-          {
-            name: 'C/P Ratio',
-            current: Number(currentCp.toFixed(1)),
-            predicted: Number(cpPredictions[0]?.toFixed(1) || 0),
-            target: Number(cpPredictions[0]?.toFixed(1) || 0),
-            trend: cpPredictions[0] < currentCp ? 'down' : 'up',
-            difference: Number((cpPredictions[0] - currentCp).toFixed(1))
-          }
-        ]);
-      };
-
-      fetchData();
-    }, []);
-
-    return {
-      loading,
-      chartData,
-      kpiMetrics
-    };
-  };
+  return { loading, chartData, kpiMetrics };
+};
