@@ -41,19 +41,40 @@ export class GoogleSheetsService {
     }
 
     // ใช้ CSV export URL สำหรับ public sheets ที่ไม่ต้องการ API key
-    const url = `https://docs.google.com/spreadsheets/d/${this.sheetId}/gviz/tq?tqx=out:csv&sheet=${sheetName}`;
+    const url = `https://docs.google.com/spreadsheets/d/${this.sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+    
+    console.log(`Fetching data from: ${url}`);
     
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Accept': 'text/csv,application/csv,text/plain'
+        }
+      });
+      
+      console.log(`Response status: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Failed to fetch sheet data: ${response.statusText}`, errorText);
         throw new Error(`Failed to fetch sheet data: ${response.statusText}`);
       }
       
       const csvText = await response.text();
+      console.log(`CSV text for ${sheetName}:`, csvText.substring(0, 200) + '...');
+      
+      if (!csvText.trim()) {
+        console.warn(`Empty response for sheet: ${sheetName}`);
+        return [];
+      }
+      
       const rows = this.parseCSV(csvText);
+      console.log(`Parsed ${rows.length} rows for ${sheetName}`);
       return rows;
     } catch (error) {
-      console.error('Error fetching sheet data:', error);
+      console.error(`Error fetching sheet data for ${sheetName}:`, error);
       throw error;
     }
   }
@@ -63,36 +84,42 @@ export class GoogleSheetsService {
     const lines = csvText.split('\n');
     
     for (const line of lines) {
-      if (line.trim()) {
+      const trimmedLine = line.trim();
+      if (trimmedLine) {
         // Simple CSV parsing - handles quoted values
         const row: string[] = [];
         let current = '';
         let inQuotes = false;
         
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
+        for (let i = 0; i < trimmedLine.length; i++) {
+          const char = trimmedLine[i];
           if (char === '"') {
             inQuotes = !inQuotes;
           } else if (char === ',' && !inQuotes) {
-            row.push(current.trim());
+            row.push(current.replace(/^"|"$/g, '').trim());
             current = '';
           } else {
             current += char;
           }
         }
-        row.push(current.trim());
+        row.push(current.replace(/^"|"$/g, '').trim());
         rows.push(row);
       }
     }
     
+    console.log(`Parsed CSV rows:`, rows);
     return rows;
   }
 
   async getDoctors() {
     const data = await this.fetchSheetData('doctors'); // ใช้ตัวเล็กตามที่มีใน Sheet
-    if (data.length === 0) return [];
+    console.log('Raw doctors data:', data);
+    if (data.length <= 1) return []; // ไม่มีข้อมูลหรือมีแค่ header
     
     const [headers, ...rows] = data;
+    console.log('Doctors headers:', headers);
+    console.log('Doctors rows:', rows);
+    
     return rows.map((row, index) => ({
       id: (index + 1).toString(),
       name: row[0] || '',
@@ -106,9 +133,13 @@ export class GoogleSheetsService {
 
   async getMonthlyData() {
     const data = await this.fetchSheetData('doctor_monthly_data'); // ใช้ชื่อแท็บที่ถูกต้อง
-    if (data.length === 0) return [];
+    console.log('Raw monthly data:', data);
+    if (data.length <= 1) return []; // ไม่มีข้อมูลหรือมีแค่ header
     
     const [headers, ...rows] = data;
+    console.log('Monthly headers:', headers);
+    console.log('Monthly rows:', rows);
+    
     return rows.map(row => ({
       id: row[0] || '',
       doctor_id: row[1] || '',
