@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { googleSheetsService } from "@/services/googleSheetsService";
 import { 
   Plus, 
   Database, 
@@ -111,6 +112,7 @@ export const DataInput = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [sheetId, setSheetId] = useState("");
+  const [apiKey, setApiKey] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [sheetData, setSheetData] = useState<any>({});
   const { toast } = useToast();
@@ -502,10 +504,19 @@ export const DataInput = () => {
       return;
     }
 
+    if (!apiKey) {
+      toast({
+        title: "Error", 
+        description: "Please enter a valid Google Sheets API Key",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Save sheet ID to localStorage
-      localStorage.setItem("googleSheetId", sheetId);
+      // Configure Google Sheets service with credentials
+      googleSheetsService.setCredentials(sheetId, apiKey);
       setIsConnected(true);
       
       // Load data from Google Sheets
@@ -627,11 +638,19 @@ export const DataInput = () => {
     }
   };
 
-  // Load sheet ID from localStorage on component mount
+  // Load sheet ID and API key from localStorage on component mount
   useEffect(() => {
     const storedSheetId = localStorage.getItem("googleSheetId");
+    const storedApiKey = localStorage.getItem("googleSheetsApiKey");
+    
     if (storedSheetId) {
       setSheetId(storedSheetId);
+    }
+    if (storedApiKey) {
+      setApiKey(storedApiKey);
+    }
+    
+    if (storedSheetId && storedApiKey) {
       setIsConnected(true);
       loadFromGoogleSheets();
     }
@@ -1065,17 +1084,19 @@ export const DataInput = () => {
                        <Label htmlFor="apiKey" className="text-sm font-medium">
                          Google Sheets API Key
                        </Label>
-                       <Input
-                         id="apiKey"
-                         type="password"
-                         placeholder="Enter your Google Sheets API Key"
-                         className="mt-2"
-                         onChange={(e) => {
-                           if (e.target.value) {
-                             localStorage.setItem('googleSheetsApiKey', e.target.value);
-                           }
-                         }}
-                       />
+                        <Input
+                          id="apiKey"
+                          type="password"
+                          value={apiKey}
+                          placeholder="Enter your Google Sheets API Key"
+                          className="mt-2"
+                          onChange={(e) => {
+                            setApiKey(e.target.value);
+                            if (e.target.value) {
+                              localStorage.setItem('googleSheetsApiKey', e.target.value);
+                            }
+                          }}
+                        />
                        <p className="text-xs text-muted-foreground mt-1">
                          Get your API key from Google Cloud Console with Sheets API enabled
                        </p>
