@@ -383,36 +383,10 @@ export const DataInput = () => {
               <TableRow key={index}>
                 {columns.map((column) => (
                   <TableCell key={column}>
-                    {(() => {
-                      let displayValue = row[column];
-                      
-                      // Map actual data fields for doctor_monthly_data
-                      if (type === "doctor_monthly_data") {
-                        switch (column) {
-                          case 'total_patient':
-                            displayValue = row['patients_count'] || 0;
-                            break;
-                          case 'total_lab':
-                            displayValue = row['total_tests'] || 0;
-                            break;
-                          case 'cpg_mismatch_percentage':
-                            displayValue = row['cpg_mismatch'] || 0;
-                            break;
-                          case 'duplicate_order_rate':
-                            displayValue = row['duplicate_tests'] || 0;
-                            break;
-                          case 'estimated_cost':
-                            displayValue = row['cost_savings'] || 0;
-                            break;
-                          default:
-                            displayValue = row[column];
-                        }
-                      }
-                      
-                      return typeof displayValue === 'string' && displayValue.length > 50
-                        ? `${displayValue.substring(0, 50)}...`
-                        : displayValue?.toString() || "-";
-                    })()}
+                    {typeof row[column] === 'string' && row[column].length > 50
+                      ? `${row[column].substring(0, 50)}...`
+                      : row[column]?.toString() || "-"
+                    }
                   </TableCell>
                 ))}
                 <TableCell>
