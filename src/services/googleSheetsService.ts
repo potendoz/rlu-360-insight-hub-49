@@ -137,7 +137,6 @@ export class GoogleSheetsService {
       console.log('Starting to fetch monthly data...');
       const data = await this.fetchSheetData('doctor_monthly_data');
       console.log('Raw monthly data:', data);
-      console.log('Raw monthly data length:', data.length);
       
       if (data.length <= 1) {
         console.warn('No monthly data found or only headers present');
@@ -148,38 +147,31 @@ export class GoogleSheetsService {
       console.log('Monthly headers:', headers);
       console.log('Monthly rows sample:', rows.slice(0, 3));
       
-      // ตรวจสอบ header structure ก่อน
-      console.log('Expected headers: id, doctor_id, month, year, rlu_score, cost_savings, test_reduction, patients_count, total_tests');
-      
-      // ถ้าไม่มีข้อมูลใน column ที่คาดหวัง ให้ใช้ข้อมูล mock ที่มีค่าจริง
-      return rows.map((row, index) => {
-        const baseData = {
-          id: row[0] || `monthly_${index + 1}`,
-          doctor_id: row[1] || '',
-          month: row[2] || 'April',
-          year: parseInt(row[3]) || 2025,
-          rlu_score: parseFloat(row[4]) || (80 + Math.random() * 20), // 80-100
-          cost_savings: parseFloat(row[5]) || (1000 + Math.random() * 5000), // 1000-6000
-          test_reduction: parseFloat(row[6]) || (10 + Math.random() * 30), // 10-40%
-          patients_count: parseInt(row[7]) || Math.floor(50 + Math.random() * 150), // 50-200
-          total_tests: parseInt(row[8]) || Math.floor(100 + Math.random() * 400), // 100-500
-        };
-        
-        return {
-          ...baseData,
-          // คำนวณค่าอื่นๆ จากข้อมูลพื้นฐาน
-          total_patient: baseData.patients_count,
-          total_lab: baseData.total_tests,
-          lp_ratio: baseData.total_tests > 0 && baseData.patients_count > 0 ? 
-            parseFloat((baseData.total_tests / baseData.patients_count).toFixed(2)) : 0,
-          cpg_mismatch_percentage: Math.random() * 15 + 5, // mock data 5-20%
-          duplicate_order_rate: Math.random() * 8 + 2, // mock data 2-10%
-          estimated_cost: baseData.cost_savings * 1.5,
-          cp_ratio: Math.random() * 0.6 + 0.2, // mock data 0.2-0.8
-          duplicate_tests: Math.floor(Math.random() * 15 + 5), // mock data 5-20
-          cpg_mismatch: Math.floor(Math.random() * 8 + 2) // mock data 2-10
-        };
-      });
+      // Map ตาม column structure จริงใน Google Sheets
+      // "id","doctor_id","month","year","rlu_score","cost_savings","test_reduction","patients_count","total_tests","duplicate_tests","cpg_mismatch","created_at","updated_at","total_patient","total_lab","lp_ratio","cpg_mismatch_percentage","duplicate_order_rate","estimated_cost","cp_ratio"
+      return rows.map(row => ({
+        id: row[0] || '',
+        doctor_id: row[1] || '',
+        month: row[2] || '',
+        year: parseInt(row[3]) || new Date().getFullYear(),
+        rlu_score: parseFloat(row[4]) || 0,
+        cost_savings: parseFloat(row[5]) || 0,
+        test_reduction: parseFloat(row[6]) || 0,
+        patients_count: parseInt(row[7]) || 0,
+        total_tests: parseInt(row[8]) || 0,
+        duplicate_tests: parseInt(row[9]) || 0,
+        cpg_mismatch: parseInt(row[10]) || 0,
+        created_at: row[11] || new Date().toISOString(),
+        updated_at: row[12] || new Date().toISOString(),
+        // ใช้ข้อมูลจาก Google Sheets โดยตรง
+        total_patient: parseInt(row[13]) || 0,
+        total_lab: parseInt(row[14]) || 0,
+        lp_ratio: parseFloat(row[15]) || 0,
+        cpg_mismatch_percentage: parseFloat(row[16]) || 0,
+        duplicate_order_rate: parseFloat(row[17]) || 0,
+        estimated_cost: parseFloat(row[18]) || 0,
+        cp_ratio: parseFloat(row[19]) || 0
+      }));
     } catch (error) {
       console.error('Error fetching monthly data:', error);
       return [];
@@ -194,45 +186,40 @@ export class GoogleSheetsService {
       
       if (data.length <= 1) {
         console.warn('No mismatch data found or only headers present');
-        // สร้างข้อมูล mock ถ้าไม่มีข้อมูลจริง
-        return this.generateMockMismatchData();
+        return [];
       }
       
       const [headers, ...rows] = data;
       console.log('Mismatch headers:', headers);
       console.log('Mismatch rows sample:', rows.slice(0, 3));
       
-      return rows.map((row, index) => ({
-        id: row[0] || `mismatch_${index + 1}`,
+      // Map ตาม column structure จริงใน Google Sheets
+      // "id","doctor_id","month","year","total_mismatch","fbs_mismatch","hba1c_mismatch","ft3_mismatch","ft4_mismatch","aptt_mismatch","lft_mismatch","lipid_profile_mismatch","created_at","updated_at"
+      return rows.map(row => ({
+        id: row[0] || '',
         doctor_id: row[1] || '',
-        patient_id: row[2] || `P${1000 + index}`,
-        original_cpt: row[3] || '99213',
-        suggested_cpt: row[4] || '99214',
-        month: row[5] || 'April',
-        year: parseInt(row[6]) || 2025,
-        status: row[7] || 'pending'
+        month: row[2] || '',
+        year: parseInt(row[3]) || new Date().getFullYear(),
+        total_mismatch: parseFloat(row[4]) || 0,
+        fbs_mismatch: parseFloat(row[5]) || 0,
+        hba1c_mismatch: parseFloat(row[6]) || 0,
+        ft3_mismatch: parseFloat(row[7]) || 0,
+        ft4_mismatch: parseFloat(row[8]) || 0,
+        aptt_mismatch: parseFloat(row[9]) || 0,
+        lft_mismatch: parseFloat(row[10]) || 0,
+        lipid_profile_mismatch: parseFloat(row[11]) || 0,
+        created_at: row[12] || new Date().toISOString(),
+        updated_at: row[13] || new Date().toISOString(),
+        // เพิ่มข้อมูลเดิมสำหรับ backward compatibility
+        patient_id: `P${Math.floor(Math.random() * 1000) + 1000}`,
+        original_cpt: '99213',
+        suggested_cpt: '99214',
+        status: 'pending'
       }));
     } catch (error) {
       console.error('Error fetching mismatch data:', error);
-      return this.generateMockMismatchData();
+      return [];
     }
-  }
-
-  private generateMockMismatchData() {
-    const doctors = ['fcbbbbea-48bd-41ac-8c4c-a01841bdc608', '938d204a-8e6d-42ac-9231-d900466521b5', 'c2fb47e8-8488-4745-a50c-e7be39084372'];
-    const cptCodes = ['99213', '99214', '99215', '85025', '80053', '93000'];
-    const months = ['April', 'May', 'June', 'July', 'August'];
-    
-    return Array.from({ length: 20 }, (_, index) => ({
-      id: `mismatch_${index + 1}`,
-      doctor_id: doctors[index % doctors.length],
-      patient_id: `P${1000 + index}`,
-      original_cpt: cptCodes[Math.floor(Math.random() * cptCodes.length)],
-      suggested_cpt: cptCodes[Math.floor(Math.random() * cptCodes.length)],
-      month: months[Math.floor(Math.random() * months.length)],
-      year: 2025,
-      status: Math.random() > 0.7 ? 'resolved' : 'pending'
-    }));
   }
 
   async getMismatchAnalysis() {
@@ -243,47 +230,51 @@ export class GoogleSheetsService {
       
       if (data.length <= 1) {
         console.warn('No mismatch analysis found or only headers present');
-        // สร้างข้อมูล mock ถ้าไม่มีข้อมูลจริง
-        return this.generateMockMismatchAnalysis();
+        return [];
       }
       
       const [headers, ...rows] = data;
       console.log('Mismatch analysis headers:', headers);
       console.log('Mismatch analysis rows sample:', rows.slice(0, 3));
       
-      return rows.map((row, index) => ({
-        id: row[0] || `analysis_${index + 1}`,
+      // Map ตาม column structure จริงใน Google Sheets
+      // "id","doctor_id","month","year","fbs_top_mismatch","fbs_count","fbs_breakdown","hba1c_top_mismatch","hba1c_count","hba1c_breakdown","ft3_top_mismatch","ft3_count","ft3_breakdown","ft4_top_mismatch","ft4_count","ft4_breakdown","aptt_top_mismatch","aptt_count","aptt_breakdown","lft_top_mismatch","lft_count","lft_breakdown","lipid_profile_top_mismatch","lipid_profile_count","lipid_profile_breakdown","created_at","updated_at"
+      return rows.map(row => ({
+        id: row[0] || '',
         doctor_id: row[1] || '',
-        total_mismatches: parseInt(row[2]) || Math.floor(Math.random() * 20 + 5),
-        month: row[3] || 'April',
-        year: parseInt(row[4]) || 2025,
-        improvement_suggestions: row[5] || 'Review CPT code selection guidelines'
+        month: row[2] || '',
+        year: parseInt(row[3]) || new Date().getFullYear(),
+        fbs_top_mismatch: row[4] || '',
+        fbs_count: parseInt(row[5]) || 0,
+        fbs_breakdown: row[6] || '',
+        hba1c_top_mismatch: row[7] || '',
+        hba1c_count: parseInt(row[8]) || 0,
+        hba1c_breakdown: row[9] || '',
+        ft3_top_mismatch: row[10] || '',
+        ft3_count: parseInt(row[11]) || 0,
+        ft3_breakdown: row[12] || '',
+        ft4_top_mismatch: row[13] || '',
+        ft4_count: parseInt(row[14]) || 0,
+        ft4_breakdown: row[15] || '',
+        aptt_top_mismatch: row[16] || '',
+        aptt_count: parseInt(row[17]) || 0,
+        aptt_breakdown: row[18] || '',
+        lft_top_mismatch: row[19] || '',
+        lft_count: parseInt(row[20]) || 0,
+        lft_breakdown: row[21] || '',
+        lipid_profile_top_mismatch: row[22] || '',
+        lipid_profile_count: parseInt(row[23]) || 0,
+        lipid_profile_breakdown: row[24] || '',
+        created_at: row[25] || new Date().toISOString(),
+        updated_at: row[26] || new Date().toISOString(),
+        // เพิ่มข้อมูลเดิมสำหรับ backward compatibility
+        total_mismatches: parseInt(row[5]) + parseInt(row[8]) + parseInt(row[11]) + parseInt(row[14]) + parseInt(row[17]) + parseInt(row[20]) + parseInt(row[23]) || 0,
+        improvement_suggestions: 'Review CPT code selection guidelines based on mismatch analysis'
       }));
     } catch (error) {
       console.error('Error fetching mismatch analysis:', error);
-      return this.generateMockMismatchAnalysis();
+      return [];
     }
-  }
-
-  private generateMockMismatchAnalysis() {
-    const doctors = ['fcbbbbea-48bd-41ac-8c4c-a01841bdc608', '938d204a-8e6d-42ac-9231-d900466521b5', 'c2fb47e8-8488-4745-a50c-e7be39084372'];
-    const months = ['April', 'May', 'June', 'July', 'August'];
-    const suggestions = [
-      'Review CPT code selection guidelines',
-      'Attend coding accuracy training',
-      'Use decision support tools',
-      'Regular peer review sessions',
-      'Update clinical documentation'
-    ];
-    
-    return doctors.map((doctorId, index) => ({
-      id: `analysis_${index + 1}`,
-      doctor_id: doctorId,
-      total_mismatches: Math.floor(Math.random() * 20 + 5),
-      month: months[Math.floor(Math.random() * months.length)],
-      year: 2025,
-      improvement_suggestions: suggestions[Math.floor(Math.random() * suggestions.length)]
-    }));
   }
 
   async getSheetData(sheetName: string) {
