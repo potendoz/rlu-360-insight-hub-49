@@ -57,7 +57,7 @@ export class GoogleSheetsService {
   }
 
   async getDoctors() {
-    const data = await this.fetchSheetData('Doctors');
+    const data = await this.fetchSheetData('doctors'); // ใช้ตัวเล็กตามที่มีใน Sheet
     if (data.length === 0) return [];
     
     const [headers, ...rows] = data;
@@ -73,7 +73,7 @@ export class GoogleSheetsService {
   }
 
   async getMonthlyData() {
-    const data = await this.fetchSheetData('MonthlyData');
+    const data = await this.fetchSheetData('doctor_monthly_data'); // ใช้ชื่อแท็บที่ถูกต้อง
     if (data.length === 0) return [];
     
     const [headers, ...rows] = data;
@@ -100,7 +100,7 @@ export class GoogleSheetsService {
   }
 
   async getMismatchData() {
-    const data = await this.fetchSheetData('MismatchData');
+    const data = await this.fetchSheetData('mismatch_data'); // ใช้ชื่อแท็บที่ถูกต้อง
     if (data.length === 0) return [];
     
     const [headers, ...rows] = data;
@@ -117,7 +117,7 @@ export class GoogleSheetsService {
   }
 
   async getMismatchAnalysis() {
-    const data = await this.fetchSheetData('MismatchAnalysis');
+    const data = await this.fetchSheetData('mismatch_analysis'); // ใช้ชื่อแท็บที่ถูกต้อง
     if (data.length === 0) return [];
     
     const [headers, ...rows] = data;
