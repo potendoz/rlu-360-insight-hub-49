@@ -32,15 +32,16 @@ export class GoogleSheetsService {
   }
 
   isConfigured(): boolean {
-    return !!(this.sheetId && this.apiKey);
+    return !!this.sheetId; // เช็คแค่ sheetId เท่านั้น
   }
 
   private async fetchSheetData(sheetName: string): Promise<string[][]> {
-    if (!this.isConfigured()) {
-      throw new Error('Google Sheets not configured');
+    if (!this.sheetId) {
+      throw new Error('Google Sheet ID not configured');
     }
 
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.sheetId}/values/${sheetName}?key=${this.apiKey}`;
+    // ใช้ CSV export URL สำหรับ public sheets ที่ไม่ต้องการ API key
+    const url = `https://docs.google.com/spreadsheets/d/${this.sheetId}/gviz/tq?tqx=out:csv&sheet=${sheetName}`;
     
     try {
       const response = await fetch(url);
@@ -48,12 +49,43 @@ export class GoogleSheetsService {
         throw new Error(`Failed to fetch sheet data: ${response.statusText}`);
       }
       
-      const data: GoogleSheetsData = await response.json();
-      return data.values || [];
+      const csvText = await response.text();
+      const rows = this.parseCSV(csvText);
+      return rows;
     } catch (error) {
       console.error('Error fetching sheet data:', error);
       throw error;
     }
+  }
+
+  private parseCSV(csvText: string): string[][] {
+    const rows: string[][] = [];
+    const lines = csvText.split('\n');
+    
+    for (const line of lines) {
+      if (line.trim()) {
+        // Simple CSV parsing - handles quoted values
+        const row: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            row.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        row.push(current.trim());
+        rows.push(row);
+      }
+    }
+    
+    return rows;
   }
 
   async getDoctors() {

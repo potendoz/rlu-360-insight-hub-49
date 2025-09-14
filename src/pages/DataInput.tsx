@@ -504,19 +504,10 @@ export const DataInput = () => {
       return;
     }
 
-    if (!apiKey) {
-      toast({
-        title: "Error", 
-        description: "Please enter a valid Google Sheets API Key",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
-      // Configure Google Sheets service with credentials
-      googleSheetsService.setCredentials(sheetId, apiKey);
+      // Configure Google Sheets service with sheet ID only
+      googleSheetsService.setCredentials(sheetId);
       setIsConnected(true);
       
       // Load data from Google Sheets
@@ -638,19 +629,12 @@ export const DataInput = () => {
     }
   };
 
-  // Load sheet ID and API key from localStorage on component mount
+  // Load sheet ID from localStorage on component mount
   useEffect(() => {
     const storedSheetId = localStorage.getItem("googleSheetId");
-    const storedApiKey = localStorage.getItem("googleSheetsApiKey");
     
     if (storedSheetId) {
       setSheetId(storedSheetId);
-    }
-    if (storedApiKey) {
-      setApiKey(storedApiKey);
-    }
-    
-    if (storedSheetId && storedApiKey) {
       setIsConnected(true);
       loadFromGoogleSheets();
     }
@@ -1078,38 +1062,16 @@ export const DataInput = () => {
                        <p className="text-xs text-muted-foreground mt-1">
                          You can find the Sheet ID in the URL of your Google Sheet between /d/ and /edit
                        </p>
-                     </div>
-                     
-                     <div>
-                       <Label htmlFor="apiKey" className="text-sm font-medium">
-                         Google Sheets API Key
-                       </Label>
-                        <Input
-                          id="apiKey"
-                          type="password"
-                          value={apiKey}
-                          placeholder="Enter your Google Sheets API Key"
-                          className="mt-2"
-                          onChange={(e) => {
-                            setApiKey(e.target.value);
-                            if (e.target.value) {
-                              localStorage.setItem('googleSheetsApiKey', e.target.value);
-                            }
-                          }}
-                        />
-                       <p className="text-xs text-muted-foreground mt-1">
-                         Get your API key from Google Cloud Console with Sheets API enabled
-                       </p>
-                     </div>
-                   </div>
+                      </div>
+                    </div>
 
                   <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <h4 className="font-medium text-yellow-800 mb-2">Setup Instructions:</h4>
                     <ol className="text-sm text-yellow-700 space-y-1 list-decimal list-inside">
-                      <li>Create a Google Sheet with the required tabs: Doctors, MonthlyData, MismatchData, MismatchAnalysis</li>
-                      <li>Make sure the sheet is publicly accessible (Anyone with the link can view)</li>
-                      <li>Copy the Sheet ID from the URL and paste it above</li>
-                      <li>Add the required column headers in each sheet</li>
+                       <li>Create a Google Sheet with the required tabs: doctors, doctor_monthly_data, mismatch_data, mismatch_analysis</li>
+                       <li>Make sure the sheet is publicly accessible (Anyone with the link can view)</li>
+                       <li>Copy the Sheet ID from the URL and paste it above</li>
+                       <li>Add the required column headers in each sheet</li>
                     </ol>
                   </div>
 
