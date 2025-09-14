@@ -357,7 +357,13 @@ export const DataInput = () => {
       );
     }
 
-    const columns = Object.keys(data[0] || {});
+    const allColumns = Object.keys(data[0] || {});
+    
+    // Filter out specific columns for doctor_monthly_data
+    const columnsToHide = ['cost_savings', 'test_reduction', 'patients_count', 'total_tests', 'duplicate_tests', 'cpg_mismatch', 'created_at', 'updated_at'];
+    const columns = type === "doctor_monthly_data" 
+      ? allColumns.filter(col => !columnsToHide.includes(col))
+      : allColumns;
     
     return (
       <div className="overflow-x-auto">
