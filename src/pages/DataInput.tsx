@@ -1086,23 +1086,185 @@ export const DataInput = () => {
             {isConnected && (
               <Card className="p-6 shadow-lg">
                 <h3 className="text-lg font-semibold mb-4">Sheet Data Preview</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg">
-                    <p className="text-2xl font-bold text-primary">{sheetData.Doctors?.length - 1 || 0}</p>
-                    <p className="text-sm font-medium text-muted-foreground">Doctors in Sheet</p>
-                  </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-blue-500/5 to-blue-500/10 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">{sheetData.MonthlyData?.length - 1 || 0}</p>
-                    <p className="text-sm font-medium text-muted-foreground">Monthly Records</p>
-                  </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-orange-500/5 to-orange-500/10 rounded-lg">
-                    <p className="text-2xl font-bold text-orange-600">{sheetData.MismatchData?.length - 1 || 0}</p>
-                    <p className="text-sm font-medium text-muted-foreground">Mismatch Records</p>
-                  </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-green-500/5 to-green-500/10 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">{sheetData.MismatchAnalysis?.length - 1 || 0}</p>
-                    <p className="text-sm font-medium text-muted-foreground">Analysis Records</p>
-                  </div>
+                
+                {/* Doctors Sheet Preview */}
+                <div className="mb-6">
+                  <h4 className="text-md font-medium mb-3 flex items-center gap-2">
+                    <UserPlus className="h-4 w-4 text-primary" />
+                    Doctors ({sheetData.Doctors?.length - 1 || 0} records)
+                  </h4>
+                  {sheetData.Doctors && sheetData.Doctors.length > 1 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/30">
+                            <TableHead>Name</TableHead>
+                            <TableHead>Department</TableHead>
+                            <TableHead>Specialty</TableHead>
+                            <TableHead>Avatar URL</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sheetData.Doctors.slice(1, 6).map((row: any[], index: number) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{row[0] || '-'}</TableCell>
+                              <TableCell>{row[1] || '-'}</TableCell>
+                              <TableCell>{row[2] || '-'}</TableCell>
+                              <TableCell className="max-w-xs truncate">{row[3] || '-'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {sheetData.Doctors.length > 6 && (
+                        <p className="text-sm text-muted-foreground mt-2 text-center">
+                          Showing first 5 records. Total: {sheetData.Doctors.length - 1} records
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground p-4 text-center bg-muted/20 rounded-lg">
+                      No doctors data found in the sheet
+                    </p>
+                  )}
+                </div>
+
+                {/* Monthly Data Sheet Preview */}
+                <div className="mb-6">
+                  <h4 className="text-md font-medium mb-3 flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-blue-600" />
+                    Monthly Data ({sheetData.MonthlyData?.length - 1 || 0} records)
+                  </h4>
+                  {sheetData.MonthlyData && sheetData.MonthlyData.length > 1 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/30">
+                            <TableHead>Doctor ID</TableHead>
+                            <TableHead>Doctor Name</TableHead>
+                            <TableHead>Month</TableHead>
+                            <TableHead>Year</TableHead>
+                            <TableHead>Total Patients</TableHead>
+                            <TableHead>RLU Score</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sheetData.MonthlyData.slice(1, 6).map((row: any[], index: number) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{row[0] || '-'}</TableCell>
+                              <TableCell>{row[1] || '-'}</TableCell>
+                              <TableCell>{row[2] || '-'}</TableCell>
+                              <TableCell>{row[3] || '-'}</TableCell>
+                              <TableCell>{row[4] || '-'}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary">{row[7] || 0}%</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {sheetData.MonthlyData.length > 6 && (
+                        <p className="text-sm text-muted-foreground mt-2 text-center">
+                          Showing first 5 records. Total: {sheetData.MonthlyData.length - 1} records
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground p-4 text-center bg-muted/20 rounded-lg">
+                      No monthly data found in the sheet
+                    </p>
+                  )}
+                </div>
+
+                {/* Mismatch Data Sheet Preview */}
+                <div className="mb-6">
+                  <h4 className="text-md font-medium mb-3 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    Mismatch Data ({sheetData.MismatchData?.length - 1 || 0} records)
+                  </h4>
+                  {sheetData.MismatchData && sheetData.MismatchData.length > 1 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/30">
+                            <TableHead>Doctor ID</TableHead>
+                            <TableHead>Month</TableHead>
+                            <TableHead>Year</TableHead>
+                            <TableHead>Total Mismatch</TableHead>
+                            <TableHead>FBS Mismatch</TableHead>
+                            <TableHead>HbA1C Mismatch</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sheetData.MismatchData.slice(1, 6).map((row: any[], index: number) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{row[0] || '-'}</TableCell>
+                              <TableCell>{row[1] || '-'}</TableCell>
+                              <TableCell>{row[2] || '-'}</TableCell>
+                              <TableCell>
+                                <Badge variant="destructive">{row[3] || 0}%</Badge>
+                              </TableCell>
+                              <TableCell>{row[4] || 0}%</TableCell>
+                              <TableCell>{row[5] || 0}%</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {sheetData.MismatchData.length > 6 && (
+                        <p className="text-sm text-muted-foreground mt-2 text-center">
+                          Showing first 5 records. Total: {sheetData.MismatchData.length - 1} records
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground p-4 text-center bg-muted/20 rounded-lg">
+                      No mismatch data found in the sheet
+                    </p>
+                  )}
+                </div>
+
+                {/* Mismatch Analysis Sheet Preview */}
+                <div>
+                  <h4 className="text-md font-medium mb-3 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    Mismatch Analysis ({sheetData.MismatchAnalysis?.length - 1 || 0} records)
+                  </h4>
+                  {sheetData.MismatchAnalysis && sheetData.MismatchAnalysis.length > 1 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/30">
+                            <TableHead>Doctor ID</TableHead>
+                            <TableHead>Month</TableHead>
+                            <TableHead>Year</TableHead>
+                            <TableHead>FBS Top Mismatch</TableHead>
+                            <TableHead>FBS Count</TableHead>
+                            <TableHead>HbA1C Top Mismatch</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sheetData.MismatchAnalysis.slice(1, 6).map((row: any[], index: number) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{row[0] || '-'}</TableCell>
+                              <TableCell>{row[1] || '-'}</TableCell>
+                              <TableCell>{row[2] || '-'}</TableCell>
+                              <TableCell className="max-w-xs truncate">{row[3] || '-'}</TableCell>
+                              <TableCell>{row[4] || 0}</TableCell>
+                              <TableCell className="max-w-xs truncate">{row[6] || '-'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {sheetData.MismatchAnalysis.length > 6 && (
+                        <p className="text-sm text-muted-foreground mt-2 text-center">
+                          Showing first 5 records. Total: {sheetData.MismatchAnalysis.length - 1} records
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground p-4 text-center bg-muted/20 rounded-lg">
+                      No analysis data found in the sheet
+                    </p>
+                  )}
                 </div>
               </Card>
             )}
