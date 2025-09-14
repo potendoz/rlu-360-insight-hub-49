@@ -124,6 +124,7 @@ export const DataInput = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [sheetId, setSheetId] = useState("1tDAAMnE7P3QBcf15pbinGqEIX5HuOzlyD-w0-KVoc2A");
+  const [apiKey, setApiKey] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
 
@@ -361,64 +362,130 @@ export const DataInput = () => {
     });
   };
 
-  // Combined form submit handler
+  // Combined form submit handler - now actually writes to Google Sheets
   const onSubmitCombinedData = async (data: any) => {
     console.log("Combined Form Data:", data);
     
-    // Generate CSV-ready format for easy copying to Google Sheets
-    const csvData = generateCSVData(data);
-    
-    // Copy to clipboard for easy pasting
-    try {
-      await navigator.clipboard.writeText(csvData);
+    if (!googleSheetsService.hasApiKey()) {
       toast({
-        title: "Success!",
-        description: "Data has been formatted and copied to clipboard. You can now paste it directly into your Google Sheet.",
+        title: "API Key Required",
+        description: "Please configure your Google Sheets API key in the settings to add data.",
+        variant: "destructive",
       });
-    } catch (error) {
-      toast({
-        title: "Form Data Ready",
-        description: "Data has been formatted. Please manually copy the data shown below to your Google Sheet.",
-      });
+      return;
     }
     
-    // Show formatted data for manual copying if clipboard fails
-    console.log("CSV Data for Google Sheets:", csvData);
+    try {
+      const { doctor, monthlyData, mismatchData, mismatchAnalysis } = data;
+      
+      // Add doctor data
+      const doctorRow = [
+        '', // id will be auto-generated
+        doctor.name,
+        doctor.specialty,
+        doctor.department,
+        doctor.avatar_url || '',
+        new Date().toISOString(), // created_at
+        new Date().toISOString()  // updated_at
+      ];
+      
+      await googleSheetsService.addDataToSheet('doctors', doctorRow);
+      
+      // For simplicity, we'll use the doctor name as reference for other sheets
+      // In a real implementation, you'd get the actual ID from the response
+      const doctorReference = doctor.name;
+      
+      // Add monthly data
+      const monthlyRow = [
+        '', // id
+        doctorReference, // doctor_id (using name as reference)
+        monthlyData.month,
+        monthlyData.year,
+        monthlyData.total_patient,
+        monthlyData.total_lab,
+        monthlyData.lp_ratio,
+        monthlyData.rlu_score,
+        monthlyData.cpg_mismatch_percentage,
+        monthlyData.duplicate_order_rate,
+        monthlyData.estimated_cost,
+        monthlyData.cp_ratio,
+        new Date().toISOString(), // created_at
+        new Date().toISOString()  // updated_at
+      ];
+      
+      await googleSheetsService.addDataToSheet('doctor_monthly_data', monthlyRow);
+      
+      // Add mismatch data
+      const mismatchRow = [
+        '', // id
+        doctorReference, // doctor_id
+        mismatchData.month,
+        mismatchData.year,
+        mismatchData.original_cpt,
+        mismatchData.suggested_cpt,
+        mismatchData.patient_id,
+        mismatchData.status,
+        new Date().toISOString(), // created_at
+        new Date().toISOString()  // updated_at
+      ];
+      
+      await googleSheetsService.addDataToSheet('mismatch_data', mismatchRow);
+      
+      // Add analysis data
+      const analysisRow = [
+        '', // id
+        doctorReference, // doctor_id
+        mismatchAnalysis.month,
+        mismatchAnalysis.year,
+        mismatchAnalysis.fbs_top_mismatch || '',
+        mismatchAnalysis.fbs_count,
+        mismatchAnalysis.fbs_breakdown || '',
+        mismatchAnalysis.hba1c_top_mismatch || '',
+        mismatchAnalysis.hba1c_count,
+        mismatchAnalysis.hba1c_breakdown || '',
+        mismatchAnalysis.ft3_top_mismatch || '',
+        mismatchAnalysis.ft3_count,
+        mismatchAnalysis.ft3_breakdown || '',
+        mismatchAnalysis.ft4_top_mismatch || '',
+        mismatchAnalysis.ft4_count,
+        mismatchAnalysis.ft4_breakdown || '',
+        mismatchAnalysis.aptt_top_mismatch || '',
+        mismatchAnalysis.aptt_count,
+        mismatchAnalysis.aptt_breakdown || '',
+        mismatchAnalysis.lft_top_mismatch || '',
+        mismatchAnalysis.lft_count,
+        mismatchAnalysis.lft_breakdown || '',
+        mismatchAnalysis.lipid_profile_top_mismatch || '',
+        mismatchAnalysis.lipid_profile_count,
+        mismatchAnalysis.lipid_profile_breakdown || '',
+        new Date().toISOString(), // created_at
+        new Date().toISOString()  // updated_at
+      ];
+      
+      await googleSheetsService.addDataToSheet('mismatch_analysis', analysisRow);
+      
+      toast({
+        title: "Success!",
+        description: "Data has been successfully added to Google Sheets.",
+      });
+      
+      // Reset form
+      combinedForm.reset();
+      
+      // Refresh data to show the new entries
+      await loadExistingData();
+      
+    } catch (error) {
+      console.error("Error adding data to Google Sheets:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add data to Google Sheets: " + (error as Error).message,
+        variant: "destructive",
+      });
+    }
   };
 
-  // Generate CSV-compatible data for Google Sheets
-  const generateCSVData = (data: any) => {
-    const { doctor, monthlyData, mismatchData, mismatchAnalysis } = data;
-    
-    const sections = [];
-    
-    // Doctor data
-    sections.push("=== Doctor Information ===");
-    sections.push(`Name,Department,Specialty,Avatar URL`);
-    sections.push(`"${doctor.name}","${doctor.department}","${doctor.specialty}","${doctor.avatar_url || ''}"`);
-    sections.push("");
-    
-    // Monthly data
-    sections.push("=== Monthly Performance Data ===");
-    sections.push(`Month,Year,Total Patients,Total Lab Orders,LP Ratio,RLU Score,CPG Mismatch %,Duplicate Order Rate %,Estimated Cost,CP Ratio`);
-    sections.push(`"${monthlyData.month}",${monthlyData.year},${monthlyData.total_patient},${monthlyData.total_lab},${monthlyData.lp_ratio},${monthlyData.rlu_score},${monthlyData.cpg_mismatch_percentage},${monthlyData.duplicate_order_rate},${monthlyData.estimated_cost},${monthlyData.cp_ratio}`);
-    sections.push("");
-    
-    // Mismatch data
-    sections.push("=== Mismatch Data ===");
-    sections.push(`Month,Year,Original CPT,Suggested CPT,Patient ID,Status`);
-    sections.push(`"${mismatchData.month}",${mismatchData.year},"${mismatchData.original_cpt}","${mismatchData.suggested_cpt}","${mismatchData.patient_id}","${mismatchData.status}"`);
-    sections.push("");
-    
-    // Analysis data
-    sections.push("=== Mismatch Analysis ===");
-    sections.push(`Month,Year,FBS Top Mismatch,FBS Count,FBS Breakdown,HbA1c Top Mismatch,HbA1c Count,HbA1c Breakdown,FT3 Top Mismatch,FT3 Count,FT3 Breakdown,FT4 Top Mismatch,FT4 Count,FT4 Breakdown,APTT Top Mismatch,APTT Count,APTT Breakdown,LFT Top Mismatch,LFT Count,LFT Breakdown,Lipid Profile Top Mismatch,Lipid Profile Count,Lipid Profile Breakdown`);
-    sections.push(`"${mismatchAnalysis.month}",${mismatchAnalysis.year},"${mismatchAnalysis.fbs_top_mismatch || ''}",${mismatchAnalysis.fbs_count},"${mismatchAnalysis.fbs_breakdown || ''}","${mismatchAnalysis.hba1c_top_mismatch || ''}",${mismatchAnalysis.hba1c_count},"${mismatchAnalysis.hba1c_breakdown || ''}","${mismatchAnalysis.ft3_top_mismatch || ''}",${mismatchAnalysis.ft3_count},"${mismatchAnalysis.ft3_breakdown || ''}","${mismatchAnalysis.ft4_top_mismatch || ''}",${mismatchAnalysis.ft4_count},"${mismatchAnalysis.ft4_breakdown || ''}","${mismatchAnalysis.aptt_top_mismatch || ''}",${mismatchAnalysis.aptt_count},"${mismatchAnalysis.aptt_breakdown || ''}","${mismatchAnalysis.lft_top_mismatch || ''}",${mismatchAnalysis.lft_count},"${mismatchAnalysis.lft_breakdown || ''}","${mismatchAnalysis.lipid_profile_top_mismatch || ''}",${mismatchAnalysis.lipid_profile_count},"${mismatchAnalysis.lipid_profile_breakdown || ''}"`);
-    
-    return sections.join("\n");
-  };
-
-  // Google Sheets connection
+  // Google Sheets connection with API key
   const connectToGoogleSheets = async () => {
     if (!sheetId) {
       toast({
@@ -431,14 +498,14 @@ export const DataInput = () => {
 
     setIsLoading(true);
     try {
-      googleSheetsService.setCredentials(sheetId);
+      googleSheetsService.setCredentials(sheetId, apiKey);
       setIsConnected(true);
       
       await loadExistingData();
       
       toast({
         title: "Success",
-        description: "Connected to Google Sheets successfully!",
+        description: apiKey ? "Connected to Google Sheets with API access!" : "Connected to Google Sheets (read-only mode)",
       });
     } catch (error) {
       console.error("Error connecting to Google Sheets:", error);
@@ -453,14 +520,19 @@ export const DataInput = () => {
     }
   };
 
-  // Load sheet ID from localStorage on component mount
+  // Load sheet ID and API key from localStorage on component mount
   useEffect(() => {
     const storedSheetId = localStorage.getItem("googleSheetId");
+    const storedApiKey = localStorage.getItem("googleSheetsApiKey");
     
     if (storedSheetId) {
       setSheetId(storedSheetId);
       setIsConnected(true);
       loadExistingData();
+    }
+    
+    if (storedApiKey) {
+      setApiKey(storedApiKey);
     }
   }, []);
 
@@ -677,13 +749,31 @@ export const DataInput = () => {
                       You can find the Sheet ID in the URL of your Google Sheet between /d/ and /edit
                     </p>
                   </div>
+                  
+                  <div>
+                    <Label htmlFor="apiKey" className="text-sm font-medium">
+                      Google Sheets API Key (Optional - for write access)
+                    </Label>
+                    <Input
+                      id="apiKey"
+                      type="password"
+                      placeholder="Enter your Google Sheets API Key"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="mt-2"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Required for adding new data. Get your API key from Google Cloud Console.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <h4 className="font-medium text-yellow-800 mb-2">Setup Instructions:</h4>
                   <ol className="text-sm text-yellow-700 space-y-1 list-decimal list-inside">
                     <li>Create a Google Sheet with the required tabs: doctors, doctor_monthly_data, mismatch_data, mismatch_analysis</li>
-                    <li>Make sure the sheet is publicly accessible (Anyone with the link can view)</li>
+                    <li>Make sure the sheet is publicly accessible (Anyone with the link can view/edit)</li>
+                    <li>Get a Google Sheets API key from Google Cloud Console (optional, for write access)</li>
                     <li>Copy the Sheet ID from the URL and paste it above</li>
                     <li>Add the required column headers in each sheet</li>
                   </ol>
@@ -702,16 +792,25 @@ export const DataInput = () => {
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center">
                     <div className="h-3 w-3 bg-green-500 rounded-full mr-2"></div>
-                    <span className="text-green-800 font-medium">Connected to Google Sheets</span>
+                    <span className="text-green-800 font-medium">
+                      Connected to Google Sheets {googleSheetsService.hasApiKey() ? "(Write Access)" : "(Read-Only)"}
+                    </span>
                   </div>
                   <p className="text-sm text-green-600 mt-1">Sheet ID: {sheetId}</p>
+                  {googleSheetsService.hasApiKey() && (
+                    <p className="text-sm text-green-600">API Key: ••••••••</p>
+                  )}
                 </div>
                 
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-blue-800 mb-2">Read-Only Mode</h4>
+                  <h4 className="font-medium text-blue-800 mb-2">
+                    {googleSheetsService.hasApiKey() ? "Full Access Mode" : "Read-Only Mode"}
+                  </h4>
                   <p className="text-sm text-blue-700">
-                    This application is now operating in read-only mode. To add or modify data, 
-                    please edit the Google Sheet directly. Changes will be reflected here when you refresh.
+                    {googleSheetsService.hasApiKey() 
+                      ? "You can view and add data to Google Sheets. Use the 'Add Data' tab to create new entries."
+                      : "This application is in read-only mode. To add data directly, please configure your Google Sheets API key above."
+                    }
                   </p>
                 </div>
 
@@ -719,7 +818,9 @@ export const DataInput = () => {
                   onClick={() => {
                     setIsConnected(false);
                     localStorage.removeItem("googleSheetId");
+                    localStorage.removeItem("googleSheetsApiKey");
                     setExistingData({ doctors: [], monthly: [], mismatch: [], analysis: [] });
+                    setApiKey("");
                   }}
                   variant="outline"
                   className="w-full"
@@ -1309,12 +1410,19 @@ export const DataInput = () => {
                 </div>
 
                 <div className="pt-6">
-                  <Button type="submit" className="w-full">
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={!googleSheetsService.hasApiKey()}
+                  >
                     <Database className="h-4 w-4 mr-2" />
-                    สร้างข้อมูลสำหรับ Google Sheets
+                    {googleSheetsService.hasApiKey() ? "เพิ่มข้อมูลลง Google Sheets" : "ต้องการ API Key เพื่อเพิ่มข้อมูล"}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center mt-2">
-                    ข้อมูลจะถูกจัดรูปแบบและคัดลอกไปยัง clipboard สำหรับวางลงใน Google Sheets
+                    {googleSheetsService.hasApiKey() 
+                      ? "ข้อมูลจะถูกเพิ่มลงใน Google Sheets โดยอัตโนมัติ"
+                      : "กรุณาตั้งค่า Google Sheets API Key ในแท็บ Settings เพื่อเพิ่มข้อมูล"
+                    }
                   </p>
                 </div>
               </form>
