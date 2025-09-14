@@ -30,7 +30,9 @@ import {
   Eye,
   Edit,
   AlertTriangle,
-  TrendingUp
+  TrendingUp,
+  Link2,
+  Settings
 } from "lucide-react";
 
 // Schema definitions for each data type
@@ -102,12 +104,15 @@ const months = [
 ];
 
 export const DataInput = () => {
-  const [activeTab, setActiveTab] = useState("doctors");
+  const [activeTab, setActiveTab] = useState("settings");
   const [doctors, setDoctors] = useState<any[]>([]);
   const [existingData, setExistingData] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [sheetId, setSheetId] = useState("");
+  const [isConnected, setIsConnected] = useState(false);
+  const [sheetData, setSheetData] = useState<any>({});
   const { toast } = useToast();
 
   // Form instances
@@ -331,20 +336,28 @@ export const DataInput = () => {
   const onSubmitDoctor = async (data: any) => {
     setIsLoading(true);
     try {
-      if (editingRecord && editingRecord.table === "doctors") {
-        const { error } = await supabase.from("doctors").update(data).eq("id", editingRecord.id);
-        if (error) throw error;
-        toast({ title: "Success", description: "Doctor updated successfully!" });
+      if (isConnected) {
+        // Add to Google Sheets
+        const rowData = [data.name, data.department, data.specialty, data.avatar_url || ''];
+        await addToGoogleSheets('Doctors', rowData);
+        toast({ title: "Success", description: "Doctor added to Google Sheets successfully!" });
       } else {
-        const { error } = await supabase.from("doctors").insert([data]);
-        if (error) throw error;
-        toast({ title: "Success", description: "Doctor added successfully!" });
+        // Fallback to Supabase
+        if (editingRecord && editingRecord.table === "doctors") {
+          const { error } = await supabase.from("doctors").update(data).eq("id", editingRecord.id);
+          if (error) throw error;
+          toast({ title: "Success", description: "Doctor updated successfully!" });
+        } else {
+          const { error } = await supabase.from("doctors").insert([data]);
+          if (error) throw error;
+          toast({ title: "Success", description: "Doctor added successfully!" });
+        }
+        loadDoctors();
+        loadExistingData();
       }
       
       doctorForm.reset();
       setEditingRecord(null);
-      loadDoctors();
-      loadExistingData();
     } catch (error) {
       toast({
         title: "Error",
@@ -359,19 +372,41 @@ export const DataInput = () => {
   const onSubmitMonthlyData = async (data: any) => {
     setIsLoading(true);
     try {
-      if (editingRecord && editingRecord.table === "doctor_monthly_data") {
-        const { error } = await supabase.from("doctor_monthly_data").update(data).eq("id", editingRecord.id);
-        if (error) throw error;
-        toast({ title: "Success", description: "Monthly data updated successfully!" });
+      if (isConnected) {
+        // Add to Google Sheets
+        const doctor = doctors.find(d => d.id === data.doctor_id);
+        const rowData = [
+          data.doctor_id,
+          doctor?.name || '',
+          data.month,
+          data.year,
+          data.total_patient,
+          data.total_lab,
+          data.lp_ratio,
+          data.rlu_score,
+          data.cpg_mismatch_percentage,
+          data.duplicate_order_rate,
+          data.estimated_cost,
+          data.cp_ratio
+        ];
+        await addToGoogleSheets('MonthlyData', rowData);
+        toast({ title: "Success", description: "Monthly data added to Google Sheets successfully!" });
       } else {
-        const { error } = await supabase.from("doctor_monthly_data").insert([data]);
-        if (error) throw error;
-        toast({ title: "Success", description: "Monthly data added successfully!" });
+        // Fallback to Supabase
+        if (editingRecord && editingRecord.table === "doctor_monthly_data") {
+          const { error } = await supabase.from("doctor_monthly_data").update(data).eq("id", editingRecord.id);
+          if (error) throw error;
+          toast({ title: "Success", description: "Monthly data updated successfully!" });
+        } else {
+          const { error } = await supabase.from("doctor_monthly_data").insert([data]);
+          if (error) throw error;
+          toast({ title: "Success", description: "Monthly data added successfully!" });
+        }
+        loadExistingData();
       }
       
       monthlyDataForm.reset();
       setEditingRecord(null);
-      loadExistingData();
     } catch (error) {
       toast({
         title: "Error",
@@ -456,7 +491,159 @@ export const DataInput = () => {
     }
   };
 
+  // Google Sheets API functions
+  const connectToGoogleSheets = async () => {
+    if (!sheetId) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid Google Sheet ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Save sheet ID to localStorage
+      localStorage.setItem("googleSheetId", sheetId);
+      setIsConnected(true);
+      
+      // Load data from Google Sheets
+      await loadFromGoogleSheets();
+      
+      toast({
+        title: "Success",
+        description: "Connected to Google Sheets successfully!",
+      });
+    } catch (error) {
+      console.error("Error connecting to Google Sheets:", error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to Google Sheets",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadFromGoogleSheets = async () => {
+    try {
+      const storedSheetId = localStorage.getItem("googleSheetId");
+      if (!storedSheetId) return;
+
+      // Load different sheets (tabs) from the Google Sheet
+      const sheets = ['Doctors', 'MonthlyData', 'MismatchData', 'MismatchAnalysis'];
+      const sheetDataPromises = sheets.map(async (sheetName) => {
+        const response = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${storedSheetId}/values/${sheetName}?key=${process.env.GOOGLE_SHEETS_API_KEY || 'YOUR_API_KEY'}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          return { [sheetName]: data.values || [] };
+        }
+        return { [sheetName]: [] };
+      });
+
+      const results = await Promise.all(sheetDataPromises);
+      const combinedData = results.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+      
+      setSheetData(combinedData);
+      processGoogleSheetsData(combinedData);
+    } catch (error) {
+      console.error("Error loading from Google Sheets:", error);
+    }
+  };
+
+  const processGoogleSheetsData = (data: any) => {
+    try {
+      // Process doctors data
+      const doctorsData = data.Doctors?.slice(1) || []; // Skip header row
+      const processedDoctors = doctorsData.map((row: any[], index: number) => ({
+        id: `sheet_${index}`,
+        name: row[0] || '',
+        department: row[1] || '',
+        specialty: row[2] || '',
+        avatar_url: row[3] || ''
+      }));
+
+      // Process monthly data
+      const monthlyData = data.MonthlyData?.slice(1) || [];
+      const processedMonthly = monthlyData.map((row: any[], index: number) => ({
+        id: `sheet_monthly_${index}`,
+        doctor_id: row[0] || '',
+        doctor_name: row[1] || '',
+        month: row[2] || '',
+        year: parseInt(row[3]) || new Date().getFullYear(),
+        total_patient: parseInt(row[4]) || 0,
+        total_lab: parseInt(row[5]) || 0,
+        lp_ratio: parseFloat(row[6]) || 0,
+        rlu_score: parseFloat(row[7]) || 0,
+        cpg_mismatch_percentage: parseFloat(row[8]) || 0,
+        duplicate_order_rate: parseFloat(row[9]) || 0,
+        estimated_cost: parseFloat(row[10]) || 0,
+        cp_ratio: parseFloat(row[11]) || 0
+      }));
+
+      setDoctors(processedDoctors);
+      setExistingData({
+        doctors: processedDoctors,
+        monthly: processedMonthly,
+        mismatch: [],
+        analysis: []
+      });
+    } catch (error) {
+      console.error("Error processing Google Sheets data:", error);
+    }
+  };
+
+  const addToGoogleSheets = async (sheetName: string, rowData: any[]) => {
+    try {
+      const storedSheetId = localStorage.getItem("googleSheetId");
+      if (!storedSheetId) return;
+
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${storedSheetId}/values/${sheetName}:append?valueInputOption=RAW&key=${process.env.GOOGLE_SHEETS_API_KEY || 'YOUR_API_KEY'}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            values: [rowData]
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to add data to Google Sheets');
+      }
+
+      await loadFromGoogleSheets(); // Refresh data
+    } catch (error) {
+      console.error("Error adding to Google Sheets:", error);
+      throw error;
+    }
+  };
+
+  // Load sheet ID from localStorage on component mount
+  useEffect(() => {
+    const storedSheetId = localStorage.getItem("googleSheetId");
+    if (storedSheetId) {
+      setSheetId(storedSheetId);
+      setIsConnected(true);
+      loadFromGoogleSheets();
+    }
+  }, []);
+
   const quickActions = [
+    {
+      title: "Google Sheets Settings",
+      description: "Connect to your Google Sheet",
+      icon: Settings,
+      tab: "settings"
+    },
     {
       title: "Add Doctor",
       description: "Add new physician to the system",
@@ -780,7 +967,11 @@ export const DataInput = () => {
           </Card>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-muted/30 h-12">
+            <TabsList className="grid w-full grid-cols-5 bg-muted/30 h-12">
+              <TabsTrigger value="settings" className="flex items-center gap-2 h-10">
+                <Settings className="h-4 w-4" />
+                Settings
+              </TabsTrigger>
               <TabsTrigger value="doctors" className="flex items-center gap-2 h-10">
                 <UserPlus className="h-4 w-4" />
                 Doctors
@@ -798,6 +989,124 @@ export const DataInput = () => {
                 Analysis
               </TabsTrigger>
             </TabsList>
+
+          {/* Google Sheets Settings */}
+          <TabsContent value="settings" className="space-y-8">
+            <Card className="p-8 shadow-lg border-2 border-primary/10">
+              <div className="flex items-center gap-3 mb-6">
+                <Link2 className="h-6 w-6 text-primary" />
+                <h2 className="text-2xl font-bold">Google Sheets Connection</h2>
+              </div>
+              
+              {isConnected ? (
+                <div className="space-y-6">
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-800">
+                      <Link2 className="h-5 w-5" />
+                      <span className="font-medium">Connected to Google Sheets</span>
+                    </div>
+                    <p className="text-sm text-green-600 mt-1">Sheet ID: {sheetId}</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Sheet Structure Required:</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-primary mb-2">Doctors Sheet</h4>
+                        <p className="text-sm text-muted-foreground">Columns: Name, Department, Specialty, Avatar URL</p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-primary mb-2">MonthlyData Sheet</h4>
+                        <p className="text-sm text-muted-foreground">Columns: Doctor ID, Doctor Name, Month, Year, Total Patient, Total Lab, LP Ratio, RLU Score, CPG Mismatch %, Duplicate Order Rate, Estimated Cost, CP Ratio</p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-primary mb-2">MismatchData Sheet</h4>
+                        <p className="text-sm text-muted-foreground">Columns: Doctor ID, Month, Year, Total Mismatch, FBS, HbA1c, FT3, FT4, APTT, LFT, Lipid Profile</p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium text-primary mb-2">MismatchAnalysis Sheet</h4>
+                        <p className="text-sm text-muted-foreground">Columns: Doctor ID, Month, Year, Analysis data...</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={() => {
+                      setIsConnected(false);
+                      setSheetId("");
+                      localStorage.removeItem("googleSheetId");
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="sheetId" className="text-sm font-medium">
+                        Google Sheet ID
+                      </Label>
+                      <Input
+                        id="sheetId"
+                        placeholder="Enter your Google Sheet ID"
+                        value={sheetId}
+                        onChange={(e) => setSheetId(e.target.value)}
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        You can find the Sheet ID in the URL of your Google Sheet between /d/ and /edit
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 className="font-medium text-yellow-800 mb-2">Setup Instructions:</h4>
+                    <ol className="text-sm text-yellow-700 space-y-1 list-decimal list-inside">
+                      <li>Create a Google Sheet with the required tabs: Doctors, MonthlyData, MismatchData, MismatchAnalysis</li>
+                      <li>Make sure the sheet is publicly accessible (Anyone with the link can view)</li>
+                      <li>Copy the Sheet ID from the URL and paste it above</li>
+                      <li>Add the required column headers in each sheet</li>
+                    </ol>
+                  </div>
+
+                  <Button 
+                    onClick={connectToGoogleSheets}
+                    disabled={isLoading || !sheetId}
+                    className="w-full"
+                  >
+                    {isLoading ? "Connecting..." : "Connect to Google Sheets"}
+                  </Button>
+                </div>
+              )}
+            </Card>
+
+            {isConnected && (
+              <Card className="p-6 shadow-lg">
+                <h3 className="text-lg font-semibold mb-4">Sheet Data Preview</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg">
+                    <p className="text-2xl font-bold text-primary">{sheetData.Doctors?.length - 1 || 0}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Doctors in Sheet</p>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-blue-500/5 to-blue-500/10 rounded-lg">
+                    <p className="text-2xl font-bold text-blue-600">{sheetData.MonthlyData?.length - 1 || 0}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Monthly Records</p>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-orange-500/5 to-orange-500/10 rounded-lg">
+                    <p className="text-2xl font-bold text-orange-600">{sheetData.MismatchData?.length - 1 || 0}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Mismatch Records</p>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-green-500/5 to-green-500/10 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">{sheetData.MismatchAnalysis?.length - 1 || 0}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Analysis Records</p>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </TabsContent>
 
           {/* Doctor Management */}
           <TabsContent value="doctors" className="space-y-8">
