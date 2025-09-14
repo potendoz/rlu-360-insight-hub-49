@@ -35,22 +35,6 @@ export class GoogleSheetsService {
     return !!this.sheetId; // เช็คแค่ sheetId เท่านั้น
   }
 
-  // Check if API key is configured
-  hasApiKey(): boolean {
-    return !!this.apiKey;
-  }
-
-  // Set API key for write operations
-  setApiKey(apiKey: string): void {
-    this.apiKey = apiKey;
-    localStorage.setItem('googleSheetsApiKey', apiKey);
-  }
-
-  // Get API key from localStorage
-  getApiKey(): string | null {
-    return this.apiKey || localStorage.getItem('googleSheetsApiKey');
-  }
-
   private async fetchSheetData(sheetName: string): Promise<string[][]> {
     if (!this.sheetId) {
       throw new Error('Google Sheet ID not configured');
@@ -297,43 +281,12 @@ export class GoogleSheetsService {
     return await this.fetchSheetData(sheetName);
   }
 
-  // Add data to Google Sheets (requires API key)
-  async addDataToSheet(sheetName: string, data: any[]): Promise<void> {
-    if (!this.apiKey) {
-      throw new Error('API key is required for write operations. Please set your Google Sheets API key.');
-    }
-
-    if (!this.sheetId) {
-      throw new Error('Sheet ID is required. Please configure your Google Sheet first.');
-    }
-
-    try {
-      // Convert data to values array format
-      const values = [data];
-      
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.sheetId}/values/${sheetName}:append?valueInputOption=RAW&key=${this.apiKey}`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          values: values
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Google Sheets API Error:', errorData);
-        throw new Error(`Failed to add data to Google Sheets: ${response.status} ${response.statusText}`);
-      }
-
-      console.log(`Successfully added data to ${sheetName} sheet`);
-    } catch (error) {
-      console.error('Error adding data to Google Sheets:', error);
-      throw error;
-    }
+  // Methods to add data to sheets would require Google Sheets API write permissions
+  // For now, we'll focus on reading data
+  async addDataToSheet(sheetName: string, data: any[]) {
+    console.log('Adding data to sheet (not implemented for read-only access):', sheetName, data);
+    // This would require Google Apps Script or OAuth for write access
+    throw new Error('Write operations require additional Google Sheets API setup');
   }
 }
 
