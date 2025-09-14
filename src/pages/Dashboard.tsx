@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { googleSheetsService } from "@/services/googleSheetsService";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -128,48 +128,22 @@ export const Dashboard = () => {
     try {
       setDoctorsLoading(true);
       
-      // Check if Google Sheets is configured
-      const savedSheetId = localStorage.getItem('googleSheetId');
-      let doctorData;
-      let doctorsData;
+      // Use Google Sheets data
+      const monthlyData = await googleSheetsService.getMonthlyData();
+      const doctorsData = await googleSheetsService.getDoctors();
       
-      if (savedSheetId) {
-        // Use Google Sheets data
-        const { googleSheetsService } = await import('@/services/googleSheetsService');
-        const monthlyData = await googleSheetsService.getMonthlyData();
-        doctorsData = await googleSheetsService.getDoctors();
-        
-        // Filter and join data
-        doctorData = monthlyData
-          .filter(data => data.month === selectedMonth && data.year === parseInt(selectedYear))
-          .map(data => {
-            const doctor = doctorsData.find(d => d.id === data.doctor_id);
-            return {
-              ...data,
-              doctors: doctor || { name: 'Unknown', department: 'Unknown', specialty: 'Unknown' }
-            };
-          })
-          .sort((a, b) => (b.rlu_score || 0) - (a.rlu_score || 0))
-          .slice(0, 3);
-      } else {
-        // Fallback to Supabase
-        const { data, error: doctorError } = await supabase
-          .from('doctor_monthly_data')
-          .select(`
-            *,
-            doctors!inner(name, department, specialty)
-          `)
-          .eq('month', selectedMonth)
-          .eq('year', parseInt(selectedYear))
-          .order('rlu_score', { ascending: false })
-          .limit(3);
-
-        if (doctorError) {
-          console.error('Error fetching doctor data:', doctorError);
-          return;
-        }
-        doctorData = data;
-      }
+      // Filter and join data
+      const doctorData = monthlyData
+        .filter(data => data.month === selectedMonth && data.year === parseInt(selectedYear))
+        .map(data => {
+          const doctor = doctorsData.find(d => d.id === data.doctor_id);
+          return {
+            ...data,
+            doctors: doctor || { name: 'Unknown', department: 'Unknown', specialty: 'Unknown' }
+          };
+        })
+        .sort((a, b) => (b.rlu_score || 0) - (a.rlu_score || 0))
+        .slice(0, 3);
 
       if (doctorData && doctorData.length > 0) {
         const formattedDoctors = doctorData.map((doc, index) => ({
@@ -196,34 +170,14 @@ export const Dashboard = () => {
     }
   };
 
-  // Fetch real data from database or Google Sheets
+  // Fetch real data from Google Sheets
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         
-        // Check if Google Sheets is configured
-        const savedSheetId = localStorage.getItem('googleSheetId');
-        let monthlyData;
-        
-        if (savedSheetId) {
-          // Use Google Sheets data
-          const { googleSheetsService } = await import('@/services/googleSheetsService');
-          monthlyData = await googleSheetsService.getMonthlyData();
-        } else {
-          // Fallback to Supabase
-          const { data, error } = await supabase
-            .from('doctor_monthly_data')
-            .select('*')
-            .order('year', { ascending: true })
-            .order('month', { ascending: true });
-
-          if (error) {
-            console.error('Error fetching dashboard data:', error);
-            return;
-          }
-          monthlyData = data;
-        }
+        // Use Google Sheets data
+        const monthlyData = await googleSheetsService.getMonthlyData();
 
         if (monthlyData && monthlyData.length > 0) {
           // Sort data by year and month for proper chronological order
@@ -441,52 +395,49 @@ export const Dashboard = () => {
 
   const handleViewDoctorDetails = async (doctorId: string) => {
     try {
-      // Fetch complete doctor data from database
-      const { data: doctorData, error } = await supabase
-        .from('doctor_monthly_data')
-        .select(`
-          *,
-          doctors!inner(name, department, specialty, avatar_url)
-        `)
-        .eq('doctor_id', doctorId)
-        .eq('month', selectedMonth)
-        .eq('year', parseInt(selectedYear))
-        .single();
+      const monthlyData = await googleSheetsService.getMonthlyData();
+      const doctorsData = await googleSheetsService.getDoctors();
+      
+      // Find doctor monthly data
+      const doctorMonthlyData = monthlyData.find(data => 
+        data.doctor_id === doctorId && 
+        data.month === selectedMonth && 
+        data.year === parseInt(selectedYear)
+      );
+      
+      // Find doctor basic info
+      const doctorInfo = doctorsData.find(d => d.id === doctorId);
 
-      if (error) {
-        console.error('Error fetching doctor details:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load doctor details. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (doctorData) {
+      if (doctorMonthlyData && doctorInfo) {
         const doctorDetails = {
-          id: doctorData.doctor_id,
-          name: doctorData.doctors.name,
-          department: doctorData.doctors.department,
-          specialization: doctorData.doctors.specialty,
-          avatar: doctorData.doctors.avatar_url,
-          score: doctorData.rlu_score || 0,
-          cpgMismatch: doctorData.cpg_mismatch_percentage || 0,
-          duplicateOrder: doctorData.duplicate_order_rate || 0,
-          cpRatio: doctorData.cp_ratio || 0,
-          lpRatio: doctorData.lp_ratio || 0,
-          totalPatients: doctorData.total_patient || 0,
-          totalLab: doctorData.total_lab || 0,
-          totalTests: doctorData.total_tests || 0,
-          duplicateTests: doctorData.duplicate_tests || 0,
-          estimatedCost: doctorData.estimated_cost || 0,
-          costSavings: doctorData.cost_savings || 0,
-          testReduction: doctorData.test_reduction || 0,
-          patientsCount: doctorData.patients_count || 0,
+          id: doctorId,
+          name: doctorInfo.name,
+          department: doctorInfo.department,
+          specialization: doctorInfo.specialty,
+          avatar: doctorInfo.avatar_url,
+          score: doctorMonthlyData.rlu_score || 0,
+          cpgMismatch: doctorMonthlyData.cpg_mismatch_percentage || 0,
+          duplicateOrder: doctorMonthlyData.duplicate_order_rate || 0,
+          cpRatio: doctorMonthlyData.cp_ratio || 0,
+          lpRatio: doctorMonthlyData.lp_ratio || 0,
+          totalPatients: doctorMonthlyData.total_patient || 0,
+          totalLab: doctorMonthlyData.total_lab || 0,
+          totalTests: doctorMonthlyData.total_tests || 0,
+          duplicateTests: doctorMonthlyData.duplicate_tests || 0,
+          estimatedCost: doctorMonthlyData.estimated_cost || 0,
+          costSavings: doctorMonthlyData.cost_savings || 0,
+          testReduction: doctorMonthlyData.test_reduction || 0,
+          patientsCount: doctorMonthlyData.patients_count || 0,
           lastReview: `${selectedMonth} ${selectedYear}`
         };
         
         setSelectedDoctor(doctorDetails);
+      } else {
+        toast({
+          title: "Error",
+          description: "Could not find doctor data for selected period.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Error in handleViewDoctorDetails:', error);
