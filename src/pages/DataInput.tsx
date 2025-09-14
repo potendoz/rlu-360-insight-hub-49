@@ -112,7 +112,7 @@ const months = [
 ];
 
 export const DataInput = () => {
-  const [activeTab, setActiveTab] = useState("settings");
+  const [activeTab, setActiveTab] = useState("add-data");
   const [doctors, setDoctors] = useState<any[]>([]);
   const [existingData, setExistingData] = useState<any>({
     doctors: [],
