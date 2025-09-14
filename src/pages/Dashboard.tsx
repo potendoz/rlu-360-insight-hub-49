@@ -128,21 +128,47 @@ export const Dashboard = () => {
     try {
       setDoctorsLoading(true);
       
-      // Get doctors data for selected month and year
-      const { data: doctorData, error: doctorError } = await supabase
-        .from('doctor_monthly_data')
-        .select(`
-          *,
-          doctors!inner(name, department, specialty)
-        `)
-        .eq('month', selectedMonth)
-        .eq('year', parseInt(selectedYear))
-        .order('rlu_score', { ascending: false })
-        .limit(3);
+      // Check if Google Sheets is configured
+      const savedSheetId = localStorage.getItem('googleSheetId');
+      let doctorData;
+      let doctorsData;
+      
+      if (savedSheetId) {
+        // Use Google Sheets data
+        const { googleSheetsService } = await import('@/services/googleSheetsService');
+        const monthlyData = await googleSheetsService.getMonthlyData();
+        doctorsData = await googleSheetsService.getDoctors();
+        
+        // Filter and join data
+        doctorData = monthlyData
+          .filter(data => data.month === selectedMonth && data.year === parseInt(selectedYear))
+          .map(data => {
+            const doctor = doctorsData.find(d => d.id === data.doctor_id);
+            return {
+              ...data,
+              doctors: doctor || { name: 'Unknown', department: 'Unknown', specialty: 'Unknown' }
+            };
+          })
+          .sort((a, b) => (b.rlu_score || 0) - (a.rlu_score || 0))
+          .slice(0, 3);
+      } else {
+        // Fallback to Supabase
+        const { data, error: doctorError } = await supabase
+          .from('doctor_monthly_data')
+          .select(`
+            *,
+            doctors!inner(name, department, specialty)
+          `)
+          .eq('month', selectedMonth)
+          .eq('year', parseInt(selectedYear))
+          .order('rlu_score', { ascending: false })
+          .limit(3);
 
-      if (doctorError) {
-        console.error('Error fetching doctor data:', doctorError);
-        return;
+        if (doctorError) {
+          console.error('Error fetching doctor data:', doctorError);
+          return;
+        }
+        doctorData = data;
       }
 
       if (doctorData && doctorData.length > 0) {
@@ -170,22 +196,33 @@ export const Dashboard = () => {
     }
   };
 
-  // Fetch real data from database
+  // Fetch real data from database or Google Sheets
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         
-        // Fetch all doctor monthly data
-        const { data: monthlyData, error } = await supabase
-          .from('doctor_monthly_data')
-          .select('*')
-          .order('year', { ascending: true })
-          .order('month', { ascending: true });
+        // Check if Google Sheets is configured
+        const savedSheetId = localStorage.getItem('googleSheetId');
+        let monthlyData;
+        
+        if (savedSheetId) {
+          // Use Google Sheets data
+          const { googleSheetsService } = await import('@/services/googleSheetsService');
+          monthlyData = await googleSheetsService.getMonthlyData();
+        } else {
+          // Fallback to Supabase
+          const { data, error } = await supabase
+            .from('doctor_monthly_data')
+            .select('*')
+            .order('year', { ascending: true })
+            .order('month', { ascending: true });
 
-        if (error) {
-          console.error('Error fetching dashboard data:', error);
-          return;
+          if (error) {
+            console.error('Error fetching dashboard data:', error);
+            return;
+          }
+          monthlyData = data;
         }
 
         if (monthlyData && monthlyData.length > 0) {

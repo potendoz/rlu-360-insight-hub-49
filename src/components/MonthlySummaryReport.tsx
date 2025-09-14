@@ -48,17 +48,40 @@ export const MonthlySummaryReport = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch doctor monthly data with doctor details
-      const { data: monthlyData, error: monthlyError } = await supabase
-        .from('doctor_monthly_data')
-        .select(`
-          *,
-          doctors(name, specialty, department)
-        `)
-        .eq('month', selectedMonth)
-        .eq('year', selectedYear);
+      // Check if Google Sheets is configured
+      const savedSheetId = localStorage.getItem('googleSheetId');
+      let monthlyData;
+      
+      if (savedSheetId) {
+        // Use Google Sheets data
+        const { googleSheetsService } = await import('@/services/googleSheetsService');
+        const allMonthlyData = await googleSheetsService.getMonthlyData();
+        const doctorsInfo = await googleSheetsService.getDoctors();
+        
+        // Filter and join data
+        monthlyData = allMonthlyData
+          .filter(data => data.month === selectedMonth && data.year === selectedYear)
+          .map(data => {
+            const doctor = doctorsInfo.find(d => d.id === data.doctor_id);
+            return {
+              ...data,
+              doctors: doctor || { name: 'Unknown', specialty: 'Unknown', department: 'Unknown' }
+            };
+          });
+      } else {
+        // Fallback to Supabase
+        const { data: monthlyDataResult, error: monthlyError } = await supabase
+          .from('doctor_monthly_data')
+          .select(`
+            *,
+            doctors(name, specialty, department)
+          `)
+          .eq('month', selectedMonth)
+          .eq('year', selectedYear);
 
-      if (monthlyError) throw monthlyError;
+        if (monthlyError) throw monthlyError;
+        monthlyData = monthlyDataResult;
+      }
 
       // Transform data
       const transformedData: DoctorData[] = monthlyData?.map(item => ({

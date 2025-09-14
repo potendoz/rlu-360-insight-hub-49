@@ -1044,23 +1044,43 @@ export const DataInput = () => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="sheetId" className="text-sm font-medium">
-                        Google Sheet ID
-                      </Label>
-                      <Input
-                        id="sheetId"
-                        placeholder="Enter your Google Sheet ID"
-                        value={sheetId}
-                        onChange={(e) => setSheetId(e.target.value)}
-                        className="mt-2"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        You can find the Sheet ID in the URL of your Google Sheet between /d/ and /edit
-                      </p>
-                    </div>
-                  </div>
+                   <div className="space-y-4">
+                     <div>
+                       <Label htmlFor="sheetId" className="text-sm font-medium">
+                         Google Sheet ID
+                       </Label>
+                       <Input
+                         id="sheetId"
+                         placeholder="Enter your Google Sheet ID"
+                         value={sheetId}
+                         onChange={(e) => setSheetId(e.target.value)}
+                         className="mt-2"
+                       />
+                       <p className="text-xs text-muted-foreground mt-1">
+                         You can find the Sheet ID in the URL of your Google Sheet between /d/ and /edit
+                       </p>
+                     </div>
+                     
+                     <div>
+                       <Label htmlFor="apiKey" className="text-sm font-medium">
+                         Google Sheets API Key
+                       </Label>
+                       <Input
+                         id="apiKey"
+                         type="password"
+                         placeholder="Enter your Google Sheets API Key"
+                         className="mt-2"
+                         onChange={(e) => {
+                           if (e.target.value) {
+                             localStorage.setItem('googleSheetsApiKey', e.target.value);
+                           }
+                         }}
+                       />
+                       <p className="text-xs text-muted-foreground mt-1">
+                         Get your API key from Google Cloud Console with Sheets API enabled
+                       </p>
+                     </div>
+                   </div>
 
                   <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <h4 className="font-medium text-yellow-800 mb-2">Setup Instructions:</h4>

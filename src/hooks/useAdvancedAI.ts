@@ -82,56 +82,78 @@ export const useAdvancedAI = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get all available data
-        const { data, error } = await supabase
-          .from('doctor_monthly_data')
-          .select('*')
-          .order('year', { ascending: true })
-          .order('month', { ascending: true });
+        // Check if Google Sheets is configured
+        const savedSheetId = localStorage.getItem('googleSheetId');
+        if (!savedSheetId) {
+          // Fallback to Supabase if Google Sheets not configured
+          const { data, error } = await supabase
+            .from('doctor_monthly_data')
+            .select('*')
+            .order('year', { ascending: true })
+            .order('month', { ascending: true });
 
-        if (error) throw error;
-        if (!data || data.length === 0) return;
+          if (error) throw error;
+          if (!data || data.length === 0) return;
 
-        // Get unique month-year combinations and sort them chronologically
-        const monthYearCombinations = [...new Set(data.map((record: any) => `${record.month}-${record.year}`))];
+          processData(data);
+          return;
+        }
+
+        // Use Google Sheets data
+        const { googleSheetsService } = await import('@/services/googleSheetsService');
+        const data = await googleSheetsService.getMonthlyData();
         
-        const sortedMonthYears = monthYearCombinations.sort((a, b) => {
-          const [monthA, yearA] = a.split('-');
-          const [monthB, yearB] = b.split('-');
-          
-          // First sort by year
-          if (parseInt(yearA) !== parseInt(yearB)) {
-            return parseInt(yearA) - parseInt(yearB);
-          }
-          
-          // Then sort by month within the same year
-          const monthIndexA = MONTH_ORDER.indexOf(monthA);
-          const monthIndexB = MONTH_ORDER.indexOf(monthB);
-          return monthIndexA - monthIndexB;
-        });
+        if (!data || data.length === 0) return;
+        processData(data);
 
-        // Take the last 3 available month-year combinations
-        const last3MonthYears = sortedMonthYears.slice(-3);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        // Group data by month-year and calculate averages for the last 3 periods
-        const monthlyAverages = last3MonthYears.reduce((acc: Record<string, MonthlyData>, monthYear: string) => {
-          const [month, year] = monthYear.split('-');
-          const monthData = data.filter((record: any) => record.month === month && record.year === parseInt(year));
-          const count = monthData.length;
-          
-          if (count > 0) {
-            acc[monthYear] = {
-              month: `${month} ${year}`, // Include year in display
-              rlu_score: monthData.reduce((sum: number, record: any) => sum + (record.rlu_score || 0), 0) / count,
-              lp_ratio: monthData.reduce((sum: number, record: any) => sum + (record.lp_ratio || 0), 0) / count,
-              cpg_mismatch_percentage: monthData.reduce((sum: number, record: any) => sum + (record.cpg_mismatch_percentage || 0), 0) / count,
-              duplicate_order_rate: monthData.reduce((sum: number, record: any) => sum + (record.duplicate_order_rate || 0), 0) / count,
-              cp_ratio: monthData.reduce((sum: number, record: any) => sum + (record.cp_ratio || 0), 0) / count,
-            };
-          }
-          
-          return acc;
-        }, {});
+    const processData = (data: any[]) => {
+      // Get unique month-year combinations and sort them chronologically
+      const monthYearCombinations = [...new Set(data.map((record: any) => `${record.month}-${record.year}`))];
+      
+      const sortedMonthYears = monthYearCombinations.sort((a, b) => {
+        const [monthA, yearA] = a.split('-');
+        const [monthB, yearB] = b.split('-');
+        
+        // First sort by year
+        if (parseInt(yearA) !== parseInt(yearB)) {
+          return parseInt(yearA) - parseInt(yearB);
+        }
+        
+        // Then sort by month within the same year
+        const monthIndexA = MONTH_ORDER.indexOf(monthA);
+        const monthIndexB = MONTH_ORDER.indexOf(monthB);
+        return monthIndexA - monthIndexB;
+      });
+
+      // Take the last 3 available month-year combinations
+      const last3MonthYears = sortedMonthYears.slice(-3);
+
+      // Group data by month-year and calculate averages for the last 3 periods
+      const monthlyAverages = last3MonthYears.reduce((acc: Record<string, MonthlyData>, monthYear: string) => {
+        const [month, year] = monthYear.split('-');
+        const monthData = data.filter((record: any) => record.month === month && record.year === parseInt(year));
+        const count = monthData.length;
+        
+        if (count > 0) {
+          acc[monthYear] = {
+            month: `${month} ${year}`, // Include year in display
+            rlu_score: monthData.reduce((sum: number, record: any) => sum + (record.rlu_score || 0), 0) / count,
+            lp_ratio: monthData.reduce((sum: number, record: any) => sum + (record.lp_ratio || 0), 0) / count,
+            cpg_mismatch_percentage: monthData.reduce((sum: number, record: any) => sum + (record.cpg_mismatch_percentage || 0), 0) / count,
+            duplicate_order_rate: monthData.reduce((sum: number, record: any) => sum + (record.duplicate_order_rate || 0), 0) / count,
+            cp_ratio: monthData.reduce((sum: number, record: any) => sum + (record.cp_ratio || 0), 0) / count,
+          };
+        }
+        
+        return acc;
+      }, {});
 
         // Get ordered data for the last 3 month-year periods
         const orderedMonthlyData = last3MonthYears.map(monthYear => monthlyAverages[monthYear]).filter(Boolean);
@@ -236,20 +258,14 @@ export const useAdvancedAI = () => {
             difference: Number((cpPredictions[0] - currentCp).toFixed(1))
           }
         ]);
+      };
 
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
+      fetchData();
+    }, []);
+
+    return {
+      loading,
+      chartData,
+      kpiMetrics
     };
-
-    fetchData();
-  }, []);
-
-  return {
-    loading,
-    chartData,
-    kpiMetrics
   };
-};

@@ -164,7 +164,7 @@ export const Doctors = () => {
     cpRatio: "",
   });
 
-  // Load doctors and their monthly data from Supabase
+  // Load doctors and their monthly data from Google Sheets or Supabase
   useEffect(() => {
     loadDoctors();
   }, []);
@@ -173,21 +173,34 @@ export const Doctors = () => {
     try {
       setLoading(true);
       
-      // Fetch doctors
-      const { data: doctors, error: doctorsError } = await supabase
-        .from('doctors')
-        .select('*')
-        .order('name');
+      // Check if Google Sheets is configured
+      const savedSheetId = localStorage.getItem('googleSheetId');
+      let doctors, monthlyData;
+      
+      if (savedSheetId) {
+        // Use Google Sheets data
+        const { googleSheetsService } = await import('@/services/googleSheetsService');
+        doctors = await googleSheetsService.getDoctors();
+        monthlyData = await googleSheetsService.getMonthlyData();
+      } else {
+        // Fallback to Supabase
+        const { data: doctorsData, error: doctorsError } = await supabase
+          .from('doctors')
+          .select('*')
+          .order('name');
 
-      if (doctorsError) throw doctorsError;
+        if (doctorsError) throw doctorsError;
 
-      // Fetch monthly data for all doctors
-      const { data: monthlyData, error: monthlyError } = await supabase
-        .from('doctor_monthly_data')
-        .select('*')
-        .order('month');
+        const { data: monthlyDataResult, error: monthlyError } = await supabase
+          .from('doctor_monthly_data')
+          .select('*')
+          .order('month');
 
-      if (monthlyError) throw monthlyError;
+        if (monthlyError) throw monthlyError;
+        
+        doctors = doctorsData;
+        monthlyData = monthlyDataResult;
+      }
 
       // Combine doctors with their monthly data
       const doctorsWithData = doctors.map(doctor => ({
