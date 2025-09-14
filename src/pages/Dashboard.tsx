@@ -15,7 +15,6 @@ import {
   Activity,
   Download,
   Calendar,
-  Presentation,
   Target,
   DollarSign,
   TrendingDown,
@@ -29,7 +28,6 @@ import { KPIChart } from "@/components/charts/KPIChart";
 import { DepartmentChart } from "@/components/charts/DepartmentChart";
 import { AdvancedAI } from "@/components/AdvancedAI";
 
-import { PresentationMode } from "@/components/PresentationMode";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuth } from "@/hooks/useAuth";
 import { anonymizeDoctorData } from "@/utils/pdpaUtils";
@@ -106,9 +104,7 @@ export const Dashboard = () => {
   const { hasRole } = useAuth();
   const isJudge = hasRole('judge');
   const [selectedPeriod, setSelectedPeriod] = useState("week");
-  const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [showAnalytics, setShowAnalytics] = useState(false);
   const [showAllDoctors, setShowAllDoctors] = useState(false);
   const [kpiData, setKpiData] = useState(initialKpiData);
   const [chartData, setChartData] = useState(initialChartData);
@@ -467,10 +463,6 @@ export const Dashboard = () => {
     }
   };
 
-  const handleViewAnalytics = () => {
-    setShowAnalytics(true);
-  };
-
   const handleViewAllDoctors = () => {
     setShowAllDoctors(true);
   };
@@ -655,12 +647,6 @@ export const Dashboard = () => {
       {/* Advanced AI Features */}
       <AdvancedAI />
 
-      {/* Presentation Mode */}
-      <PresentationMode 
-        isOpen={isPresentationMode} 
-        onClose={() => setIsPresentationMode(false)} 
-      />
-
       {/* Doctor Details Modal */}
       <Dialog open={!!selectedDoctor} onOpenChange={() => setSelectedDoctor(null)}>
         <DialogContent className="max-w-2xl">
@@ -705,40 +691,6 @@ export const Dashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Analytics Modal */}
-      <Dialog open={showAnalytics} onOpenChange={setShowAnalytics}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>รายละเอียดการวิเคราะห์</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="p-4">
-                <h4 className="font-semibold mb-2">ข้อมูลประจำเดือน</h4>
-                <p>• จำนวนการสั่งแลปทั้งหมด: 2,847 ครั้ง</p>
-                <p>• การสั่งซ้ำ: 8.7% (ลดลง 2.5%)</p>
-                <p>• ความไม่สอดคล้องกับ CPG: 12.3%</p>
-                <p>• ประหยัดค่าใช้จ่าย: ฿2.4M</p>
-              </Card>
-              <Card className="p-4">
-                <h4 className="font-semibold mb-2">เปรียบเทียบแผนก</h4>
-                <p>• Cardiology: ประหยัด 45K, ลด 25%</p>
-                <p>• Internal Med: ประหยัด 52K, ลด 28%</p>
-                <p>• Emergency: ประหยัด 29K, ลด 18%</p>
-                <p>• Endocrinology: ประหยัด 38K, ลด 32%</p>
-              </Card>
-            </div>
-            <Card className="p-4">
-              <h4 className="font-semibold mb-2">แนวโน้มย้อนหลัง 5 เดือน</h4>
-              <p>• มกราคม: 15.8% mismatch</p>
-              <p>• กุมภาพันธ์: 14.2% mismatch (ปรับปรุง 1.6%)</p>
-              <p>• มีนาคม: 13.1% mismatch (ปรับปรุง 1.1%)</p>
-              <p>• เมษายน: 12.8% mismatch (ปรับปรุง 0.3%)</p>
-              <p>• พฤษภาคม: 12.3% mismatch (ปรับปรุง 0.5%)</p>
-            </Card>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* All Doctors Modal */}
       <Dialog open={showAllDoctors} onOpenChange={setShowAllDoctors}>
