@@ -147,30 +147,21 @@ export class GoogleSheetsService {
       console.log('Monthly headers:', headers);
       console.log('Monthly rows sample:', rows.slice(0, 3));
       
-      // Map ตาม column structure จริงใน Google Sheets
-      // "id","doctor_id","month","year","rlu_score","cost_savings","test_reduction","patients_count","total_tests","duplicate_tests","cpg_mismatch","created_at","updated_at","total_patient","total_lab","lp_ratio","cpg_mismatch_percentage","duplicate_order_rate","estimated_cost","cp_ratio"
+      // Map ตาม column structure จริงใน Google Sheets ตามที่เห็นใน network requests
+      // "id","doctor_id","month","year","rlu_score","total_patient","total_lab","lp_ratio","cpg_mismatch_percentage","duplicate_order_rate","estimated_cost","cp_ratio"
       return rows.map(row => ({
         id: row[0] || '',
         doctor_id: row[1] || '',
         month: row[2] || '',
         year: parseInt(row[3]) || new Date().getFullYear(),
         rlu_score: parseFloat(row[4]) || 0,
-        cost_savings: parseFloat(row[5]) || 0,
-        test_reduction: parseFloat(row[6]) || 0,
-        patients_count: parseInt(row[7]) || 0,
-        total_tests: parseInt(row[8]) || 0,
-        duplicate_tests: parseInt(row[9]) || 0,
-        cpg_mismatch: parseInt(row[10]) || 0,
-        created_at: row[11] || new Date().toISOString(),
-        updated_at: row[12] || new Date().toISOString(),
-        // ใช้ข้อมูลจาก Google Sheets โดยตรง
-        total_patient: parseInt(row[13]) || 0,
-        total_lab: parseInt(row[14]) || 0,
-        lp_ratio: parseFloat(row[15]) || 0,
-        cpg_mismatch_percentage: parseFloat(row[16]) || 0,
-        duplicate_order_rate: parseFloat(row[17]) || 0,
-        estimated_cost: parseFloat(row[18]) || 0,
-        cp_ratio: parseFloat(row[19]) || 0
+        total_patient: parseInt(row[5]) || 0,
+        total_lab: parseInt(row[6]) || 0,
+        lp_ratio: parseFloat(row[7]) || 0,
+        cpg_mismatch_percentage: parseFloat(row[8]) || 0,
+        duplicate_order_rate: parseFloat(row[9]) || 0,
+        estimated_cost: parseFloat(row[10]) || 0,
+        cp_ratio: parseFloat(row[11]) || 0
       }));
     } catch (error) {
       console.error('Error fetching monthly data:', error);

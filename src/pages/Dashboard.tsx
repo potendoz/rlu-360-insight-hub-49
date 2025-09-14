@@ -436,12 +436,12 @@ export const Dashboard = () => {
           lpRatio: doctorMonthlyData.lp_ratio || 0,
           totalPatients: doctorMonthlyData.total_patient || 0,
           totalLab: doctorMonthlyData.total_lab || 0,
-          totalTests: doctorMonthlyData.total_tests || 0,
-          duplicateTests: doctorMonthlyData.duplicate_tests || 0,
+          totalTests: doctorMonthlyData.total_lab || 0, // ใช้ total_lab แทน total_tests
+          duplicateTests: Math.round((doctorMonthlyData.duplicate_order_rate || 0) * (doctorMonthlyData.total_lab || 0) / 100), // คำนวณจาก rate
           estimatedCost: doctorMonthlyData.estimated_cost || 0,
-          costSavings: doctorMonthlyData.cost_savings || 0,
-          testReduction: doctorMonthlyData.test_reduction || 0,
-          patientsCount: doctorMonthlyData.patients_count || 0,
+          costSavings: doctorMonthlyData.estimated_cost || 0, // ใช้ estimated_cost แทน cost_savings
+          testReduction: Math.round((doctorMonthlyData.duplicate_order_rate || 0) * (doctorMonthlyData.total_lab || 0) / 100), // คำนวณจาก rate
+          patientsCount: doctorMonthlyData.total_patient || 0,
           lastReview: `${selectedMonth} ${selectedYear}`
         };
         
