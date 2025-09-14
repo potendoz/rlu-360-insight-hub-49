@@ -133,36 +133,45 @@ export class GoogleSheetsService {
   }
 
   async getMonthlyData() {
-    const data = await this.fetchSheetData('doctor_monthly_data');
-    console.log('Raw monthly data:', data);
-    if (data.length <= 1) return []; 
+    try {
+      console.log('Starting to fetch monthly data...');
+      const data = await this.fetchSheetData('doctor_monthly_data');
+      console.log('Raw monthly data:', data);
+      if (data.length <= 1) {
+        console.warn('No monthly data found or only headers present');
+        return [];
+      }
     
-    const [headers, ...rows] = data;
-    console.log('Monthly headers:', headers);
-    console.log('Monthly rows:', rows);
-    
-    // Map ตาม column ที่เห็นจริงใน Google Sheets: id, doctor_id, month, year, rlu_score, cost_savings, test_reduction, patients_count, total_tests
-    return rows.map(row => ({
-      id: row[0] || '',
-      doctor_id: row[1] || '',
-      month: row[2] || '',
-      year: parseInt(row[3]) || new Date().getFullYear(),
-      rlu_score: parseFloat(row[4]) || 0,
-      cost_savings: parseFloat(row[5]) || 0,
-      test_reduction: parseFloat(row[6]) || 0,
-      patients_count: parseInt(row[7]) || 0,
-      total_tests: parseInt(row[8]) || 0,
-      // คำนวณค่าอื่นๆ จากข้อมูลพื้นฐาน
-      total_patient: parseInt(row[7]) || 0, // ใช้ patients_count
-      total_lab: parseInt(row[8]) || 0, // ใช้ total_tests
-      lp_ratio: (parseInt(row[8]) || 0) > 0 && (parseInt(row[7]) || 0) > 0 ? (parseInt(row[8]) / parseInt(row[7])) : 0,
-      cpg_mismatch_percentage: Math.random() * 15 + 5, // mock data 5-20%
-      duplicate_order_rate: Math.random() * 8 + 2, // mock data 2-10%
-      estimated_cost: (parseFloat(row[5]) || 0) * 1.5, // คำนวณจาก cost_savings
-      cp_ratio: Math.random() * 0.6 + 0.2, // mock data 0.2-0.8
-      duplicate_tests: Math.floor(Math.random() * 15 + 5), // mock data 5-20
-      cpg_mismatch: Math.floor(Math.random() * 8 + 2) // mock data 2-10
-    }));
+      const [headers, ...rows] = data;
+      console.log('Monthly headers:', headers);
+      console.log('Monthly rows:', rows);
+      
+      // Map ตาม column ที่เห็นจริงใน Google Sheets: id, doctor_id, month, year, rlu_score, cost_savings, test_reduction, patients_count, total_tests
+      return rows.map(row => ({
+        id: row[0] || '',
+        doctor_id: row[1] || '',
+        month: row[2] || '',
+        year: parseInt(row[3]) || new Date().getFullYear(),
+        rlu_score: parseFloat(row[4]) || 0,
+        cost_savings: parseFloat(row[5]) || 0,
+        test_reduction: parseFloat(row[6]) || 0,
+        patients_count: parseInt(row[7]) || 0,
+        total_tests: parseInt(row[8]) || 0,
+        // คำนวณค่าอื่นๆ จากข้อมูลพื้นฐาน
+        total_patient: parseInt(row[7]) || 0, // ใช้ patients_count
+        total_lab: parseInt(row[8]) || 0, // ใช้ total_tests
+        lp_ratio: (parseInt(row[8]) || 0) > 0 && (parseInt(row[7]) || 0) > 0 ? (parseInt(row[8]) / parseInt(row[7])) : 0,
+        cpg_mismatch_percentage: Math.random() * 15 + 5, // mock data 5-20%
+        duplicate_order_rate: Math.random() * 8 + 2, // mock data 2-10%
+        estimated_cost: (parseFloat(row[5]) || 0) * 1.5, // คำนวณจาก cost_savings
+        cp_ratio: Math.random() * 0.6 + 0.2, // mock data 0.2-0.8
+        duplicate_tests: Math.floor(Math.random() * 15 + 5), // mock data 5-20
+        cpg_mismatch: Math.floor(Math.random() * 8 + 2) // mock data 2-10
+      }));
+    } catch (error) {
+      console.error('Error fetching monthly data:', error);
+      return [];
+    }
   }
 
   async getMismatchData() {

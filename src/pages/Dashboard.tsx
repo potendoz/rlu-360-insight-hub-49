@@ -187,6 +187,7 @@ export const Dashboard = () => {
         console.log('Fetching monthly data from Google Sheets...');
         const monthlyData = await googleSheetsService.getMonthlyData();
         console.log('Fetched monthly data:', monthlyData);
+        console.log('Monthly data length:', monthlyData ? monthlyData.length : 0);
 
         if (monthlyData && monthlyData.length > 0) {
           // Sort data by year and month for proper chronological order
