@@ -176,8 +176,17 @@ export const Dashboard = () => {
       try {
         setLoading(true);
         
+        // Check if Google Sheets is configured
+        if (!googleSheetsService.isConfigured()) {
+          console.warn('Google Sheets not configured');
+          setLoading(false);
+          return;
+        }
+        
         // Use Google Sheets data
+        console.log('Fetching monthly data from Google Sheets...');
         const monthlyData = await googleSheetsService.getMonthlyData();
+        console.log('Fetched monthly data:', monthlyData);
 
         if (monthlyData && monthlyData.length > 0) {
           // Sort data by year and month for proper chronological order
@@ -371,6 +380,14 @@ export const Dashboard = () => {
             duplicateOrder: chartDataPoints.map(d => ({ month: `${d.month} ${d.year}`, value: d.duplicateOrder })),
             cpRatio: chartDataPoints.map(d => ({ month: `${d.month} ${d.year}`, value: d.cpRatio })),
             activePhysicians: chartDataPoints.map(d => ({ month: `${d.month} ${d.year}`, value: d.activePhysicians }))
+          });
+        } else {
+          console.warn('No monthly data found in Google Sheets');
+          // Show toast notification to user
+          toast({
+            title: "ไม่พบข้อมูล",
+            description: "ไม่พบข้อมูลในแท็บ 'doctor_monthly_data' ใน Google Sheets กรุณาตรวจสอบว่ามีข้อมูลในแท็บนี้แล้ว",
+            variant: "destructive"
           });
         }
       } catch (error) {
