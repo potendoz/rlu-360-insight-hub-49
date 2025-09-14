@@ -359,10 +359,10 @@ export const DataInput = () => {
 
     const allColumns = Object.keys(data[0] || {});
     
-    // Filter out specific columns for doctor_monthly_data
-    const columnsToHide = ['cost_savings', 'test_reduction', 'patients_count', 'total_tests', 'duplicate_tests', 'cpg_mismatch', 'created_at', 'updated_at'];
+    // Define specific columns for doctor_monthly_data
+    const doctorMonthlyColumns = ['id', 'doctor_id', 'month', 'year', 'rlu_score', 'total_patient', 'total_lab', 'lp_ratio', 'cpg_mismatch_percentage', 'duplicate_order_rate', 'estimated_cost', 'cp_ratio'];
     const columns = type === "doctor_monthly_data" 
-      ? allColumns.filter(col => !columnsToHide.includes(col))
+      ? doctorMonthlyColumns
       : allColumns;
     
     return (
