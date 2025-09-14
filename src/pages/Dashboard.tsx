@@ -507,20 +507,7 @@ export const Dashboard = () => {
           </p>
         </div>
         <div className="flex space-x-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsPresentationMode(true)}
-            className="flex items-center gap-2"
-          >
-            <Presentation className="h-4 w-4" />
-            {t('dashboard.presentation')}
-          </Button>
           <PDFExport title="RLU 360 Dashboard Report" />
-          <Button className="btn-hero" onClick={handleViewAnalytics}>
-            <Target className="w-4 h-4 mr-2" />
-            View Analytics
-          </Button>
         </div>
       </div>
 
