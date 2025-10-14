@@ -421,86 +421,90 @@ export const DataInput = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {quickActions.map((action) => (
-          <Card 
-            key={action.id} 
-            className="p-4 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => setActiveTab(action.id)}
-          >
-            <div className="flex items-center space-x-3">
-              <div className={`p-2 rounded-lg ${action.color} text-white`}>
-                <action.icon className="h-5 w-5" />
+      {isConnected && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {quickActions.map((action) => (
+            <Card 
+              key={action.id} 
+              className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setActiveTab(action.id)}
+            >
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${action.color} text-white`}>
+                  <action.icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">{action.label}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {getDataCount(action.id)} records
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold">{action.label}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {getDataCount(action.id)} records
-                </p>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Data Overview */}
-      <Card className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Data Overview</h2>
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              onClick={loadExistingData}
-              disabled={refreshing || !isConnected}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh Data
-            </Button>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <Stethoscope className="h-8 w-8 text-blue-500" />
-              <div className="text-right">
-                <p className="text-2xl font-bold text-blue-600">{getDataCount('doctors')}</p>
-                <p className="text-sm text-blue-500">Doctors</p>
-              </div>
+      {isConnected && (
+        <Card className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Data Overview</h2>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={loadExistingData}
+                disabled={refreshing || !isConnected}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh Data
+              </Button>
             </div>
           </div>
           
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <BarChart3 className="h-8 w-8 text-green-500" />
-              <div className="text-right">
-                <p className="text-2xl font-bold text-green-600">{getDataCount('monthly')}</p>
-                <p className="text-sm text-green-500">Monthly Records</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <Stethoscope className="h-8 w-8 text-blue-500" />
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-blue-600">{getDataCount('doctors')}</p>
+                  <p className="text-sm text-blue-500">Doctors</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <BarChart3 className="h-8 w-8 text-green-500" />
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-green-600">{getDataCount('monthly')}</p>
+                  <p className="text-sm text-green-500">Monthly Records</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-orange-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <AlertTriangle className="h-8 w-8 text-orange-500" />
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-orange-600">{getDataCount('mismatch')}</p>
+                  <p className="text-sm text-orange-500">Mismatches</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <FileText className="h-8 w-8 text-purple-500" />
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-purple-600">{getDataCount('analysis')}</p>
+                  <p className="text-sm text-purple-500">Analyses</p>
+                </div>
               </div>
             </div>
           </div>
-          
-          <div className="bg-orange-50 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <AlertTriangle className="h-8 w-8 text-orange-500" />
-              <div className="text-right">
-                <p className="text-2xl font-bold text-orange-600">{getDataCount('mismatch')}</p>
-                <p className="text-sm text-orange-500">Mismatches</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <FileText className="h-8 w-8 text-purple-500" />
-              <div className="text-right">
-                <p className="text-2xl font-bold text-purple-600">{getDataCount('analysis')}</p>
-                <p className="text-sm text-purple-500">Analyses</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -607,31 +611,63 @@ export const DataInput = () => {
         </TabsContent>
 
         <TabsContent value="doctors" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Doctors Data</h3>
-            {renderDataTable(existingData.doctors, "doctors", "Doctors")}
-          </Card>
+          {isConnected ? (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Doctors Data</h3>
+              {renderDataTable(existingData.doctors, "doctors", "Doctors")}
+            </Card>
+          ) : (
+            <Card className="p-6">
+              <div className="text-center py-8 text-muted-foreground">
+                กรุณาเชื่อมต่อกับ Google Sheet ก่อนดูข้อมูล
+              </div>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="monthly" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Monthly Performance Data</h3>
-            {renderDataTable(existingData.monthly, "doctor_monthly_data", "Monthly Data")}
-          </Card>
+          {isConnected ? (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Monthly Performance Data</h3>
+              {renderDataTable(existingData.monthly, "doctor_monthly_data", "Monthly Data")}
+            </Card>
+          ) : (
+            <Card className="p-6">
+              <div className="text-center py-8 text-muted-foreground">
+                กรุณาเชื่อมต่อกับ Google Sheet ก่อนดูข้อมูล
+              </div>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="mismatch" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">CPT Mismatch Data</h3>
-            {renderDataTable(existingData.mismatch, "mismatch_data", "Mismatch Data")}
-          </Card>
+          {isConnected ? (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">CPT Mismatch Data</h3>
+              {renderDataTable(existingData.mismatch, "mismatch_data", "Mismatch Data")}
+            </Card>
+          ) : (
+            <Card className="p-6">
+              <div className="text-center py-8 text-muted-foreground">
+                กรุณาเชื่อมต่อกับ Google Sheet ก่อนดูข้อมูล
+              </div>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="analysis" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Mismatch Analysis</h3>
-            {renderDataTable(existingData.analysis, "mismatch_analysis", "Analysis Data")}
-          </Card>
+          {isConnected ? (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Mismatch Analysis</h3>
+              {renderDataTable(existingData.analysis, "mismatch_analysis", "Analysis Data")}
+            </Card>
+          ) : (
+            <Card className="p-6">
+              <div className="text-center py-8 text-muted-foreground">
+                กรุณาเชื่อมต่อกับ Google Sheet ก่อนดูข้อมูล
+              </div>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
