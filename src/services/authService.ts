@@ -279,19 +279,7 @@ class AuthService {
   }
 
   getDefaultRoute(): string {
-    const role = this.authState.user?.role;
-    switch (role) {
-      case 'admin':
-        return '/admin';
-      case 'physician':
-        return '/dashboard';
-      case 'lab_manager':
-        return '/dashboard';
-      case 'judge':
-        return '/dashboard';
-      default:
-        return '/dashboard';
-    }
+    return '/data-input';
   }
 
   private logAuthEvent(userId: string, role: string, action: string, status: string) {

@@ -127,7 +127,7 @@ const AppRoutes = () => {
       {isAuthenticated && (
         <Route 
           path="/" 
-          element={<Navigate to="/dashboard" replace />} 
+          element={<Navigate to="/data-input" replace />} 
         />
       )}
       
