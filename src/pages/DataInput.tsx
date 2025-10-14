@@ -354,11 +354,28 @@ export const DataInput = () => {
     }
   };
 
-  // Load sheet ID from localStorage on component mount
+  // Load sheet ID from localStorage on component mount and validate against current user
   useEffect(() => {
     const storedSheetId = localStorage.getItem("googleSheetId");
+    const userSheetId = sessionStorage.getItem('user_google_sheet_id');
     
-    if (storedSheetId) {
+    // If there's a stored sheet ID but it doesn't match the current user's assigned sheet ID
+    if (storedSheetId && userSheetId && storedSheetId !== userSheetId) {
+      // Clear the invalid stored data
+      localStorage.removeItem("googleSheetId");
+      setSheetId("");
+      setIsConnected(false);
+      
+      toast({
+        title: "กรุณาเชื่อมต่อใหม่",
+        description: "Google Sheet ID ไม่ตรงกับบัญชีของคุณ กรุณากรอก Google Sheet ID ที่ถูกต้องเพื่อเชื่อมต่อ",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // If stored sheet ID matches user's sheet ID, auto-connect
+    if (storedSheetId && userSheetId && storedSheetId === userSheetId) {
       setSheetId(storedSheetId);
       setIsConnected(true);
       loadExistingData();
