@@ -295,8 +295,8 @@ export const DataInput = () => {
   const connectToGoogleSheets = async () => {
     if (!sheetId) {
       toast({
-        title: "Error",
-        description: "Please enter a valid Google Sheet ID",
+        title: "ข้อผิดพลาด",
+        description: "กรุณากรอก Google Sheet ID",
         variant: "destructive",
       });
       return;
@@ -304,20 +304,41 @@ export const DataInput = () => {
 
     setIsLoading(true);
     try {
+      // Temporarily set credentials to fetch users
       googleSheetsService.setCredentials(sheetId);
+      
+      // Fetch users to validate sheet ID
+      const users = await googleSheetsService.getUsers();
+      
+      // Check if the entered sheet ID exists in any user's google_sheet_id column
+      const matchingUser = users.find(user => user.google_sheet_id === sheetId);
+      
+      if (!matchingUser) {
+        toast({
+          title: "ไม่สามารถเชื่อมต่อได้",
+          description: "Google Sheet ID ไม่ตรงกับข้อมูลในระบบ กรุณาตรวจสอบและลองใหม่อีกครั้ง",
+          variant: "destructive",
+        });
+        setIsConnected(false);
+        setIsLoading(false);
+        return;
+      }
+      
+      // If validation passes, proceed with connection
       setIsConnected(true);
+      localStorage.setItem("googleSheetId", sheetId);
       
       await loadExistingData();
       
       toast({
-        title: "Success",
-        description: "Connected to Google Sheets successfully!",
+        title: "เชื่อมต่อสำเร็จ",
+        description: "เชื่อมต่อกับ Google Sheets เรียบร้อยแล้ว",
       });
     } catch (error) {
       console.error("Error connecting to Google Sheets:", error);
       toast({
-        title: "Error",
-        description: "Failed to connect to Google Sheets: " + (error as Error).message,
+        title: "ข้อผิดพลาด",
+        description: "ไม่สามารถเชื่อมต่อกับ Google Sheets ได้: " + (error as Error).message,
         variant: "destructive",
       });
       setIsConnected(false);
