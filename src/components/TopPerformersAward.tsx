@@ -71,26 +71,23 @@ export const TopPerformersAward = () => {
   }, [selectedMonth, selectedYear]);
 
   const loadTopPerformers = async () => {
+    const savedSheetId = localStorage.getItem('googleSheetId');
+    if (!savedSheetId) return;
+
     setLoading(true);
     try {
-      // Load doctors data
-      const { data: doctors, error: doctorsError } = await supabase
-        .from('doctors')
-        .select('*');
+      // Use Google Sheets data only
+      const { googleSheetsService } = await import('@/services/googleSheetsService');
+      const doctors = await googleSheetsService.getDoctors();
+      const performanceData = await googleSheetsService.getMonthlyData();
 
-      if (doctorsError) throw doctorsError;
-
-      // Load performance data for selected month/year
-      const { data: performanceData, error: performanceError } = await supabase
-        .from('doctor_monthly_data')
-        .select('*')
-        .eq('month', selectedMonth)
-        .eq('year', parseInt(selectedYear));
-
-      if (performanceError) throw performanceError;
+      // Filter performance data for selected month/year
+      const filteredPerformanceData = performanceData.filter(
+        data => data.month === selectedMonth && data.year === parseInt(selectedYear)
+      );
 
       // Map data to TopPerformer format
-      const doctorPerformances = performanceData.map((data: PerformanceData) => {
+      const doctorPerformances = filteredPerformanceData.map((data: any) => {
         const doctor = doctors?.find(d => d.id === data.doctor_id);
         if (!doctor) return null;
 
@@ -150,6 +147,25 @@ export const TopPerformersAward = () => {
         return 'from-muted to-muted-foreground';
     }
   };
+
+  // Check if connected
+  const isConnected = !!localStorage.getItem('googleSheetId');
+
+  if (!isConnected) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-12">
+          <div className="text-center space-y-4">
+            <Trophy className="h-16 w-16 text-warning mx-auto" />
+            <h2 className="text-2xl font-semibold">ไม่พบการเชื่อมต่อ Google Sheet</h2>
+            <p className="text-muted-foreground">
+              กรุณาไปที่หน้า Data Input เพื่อเชื่อมต่อ Google Sheet ID ก่อนดูรายงานผู้ปฏิบัติงานดีเด่น
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   const generateAwardPDF = async () => {
     if (topPerformers.length === 0) {

@@ -50,38 +50,26 @@ export const MonthlySummaryReport = () => {
     try {
       // Check if Google Sheets is configured
       const savedSheetId = localStorage.getItem('googleSheetId');
-      let monthlyData;
-      
-      if (savedSheetId) {
-        // Use Google Sheets data
-        const { googleSheetsService } = await import('@/services/googleSheetsService');
-        const allMonthlyData = await googleSheetsService.getMonthlyData();
-        const doctorsInfo = await googleSheetsService.getDoctors();
-        
-        // Filter and join data
-        monthlyData = allMonthlyData
-          .filter(data => data.month === selectedMonth && data.year === selectedYear)
-          .map(data => {
-            const doctor = doctorsInfo.find(d => d.id === data.doctor_id);
-            return {
-              ...data,
-              doctors: doctor || { name: 'Unknown', specialty: 'Unknown', department: 'Unknown' }
-            };
-          });
-      } else {
-        // Fallback to Supabase
-        const { data: monthlyDataResult, error: monthlyError } = await supabase
-          .from('doctor_monthly_data')
-          .select(`
-            *,
-            doctors(name, specialty, department)
-          `)
-          .eq('month', selectedMonth)
-          .eq('year', selectedYear);
-
-        if (monthlyError) throw monthlyError;
-        monthlyData = monthlyDataResult;
+      if (!savedSheetId) {
+        setLoading(false);
+        return;
       }
+      
+      // Use Google Sheets data only
+      const { googleSheetsService } = await import('@/services/googleSheetsService');
+      const allMonthlyData = await googleSheetsService.getMonthlyData();
+      const doctorsInfo = await googleSheetsService.getDoctors();
+      
+      // Filter and join data
+      const monthlyData = allMonthlyData
+        .filter(data => data.month === selectedMonth && data.year === selectedYear)
+        .map(data => {
+          const doctor = doctorsInfo.find(d => d.id === data.doctor_id);
+          return {
+            ...data,
+            doctors: doctor || { name: 'Unknown', specialty: 'Unknown', department: 'Unknown' }
+          };
+        });
 
       // Transform data
       const transformedData: DoctorData[] = monthlyData?.map(item => ({
@@ -89,7 +77,7 @@ export const MonthlySummaryReport = () => {
         name: item.doctors?.name || 'Unknown',
         specialty: item.doctors?.specialty || 'Unknown',
         department: item.doctors?.department || 'Unknown',
-        patients_count: item.patients_count || item.total_patient || 0,
+        patients_count: item.total_patient || 0,
         total_lab: item.total_lab || 0,
         lp_ratio: item.lp_ratio || 0,
         cpg_mismatch_percentage: item.cpg_mismatch_percentage || 0,
@@ -183,6 +171,25 @@ export const MonthlySummaryReport = () => {
 
     return recommendations;
   };
+
+  // Check if connected
+  const isConnected = !!localStorage.getItem('googleSheetId');
+
+  if (!isConnected) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-12">
+          <div className="text-center space-y-4">
+            <FileText className="h-16 w-16 text-warning mx-auto" />
+            <h2 className="text-2xl font-semibold">ไม่พบการเชื่อมต่อ Google Sheet</h2>
+            <p className="text-muted-foreground">
+              กรุณาไปที่หน้า Data Input เพื่อเชื่อมต่อ Google Sheet ID ก่อนดูรายงานสรุปรายเดือน
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

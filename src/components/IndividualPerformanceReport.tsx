@@ -104,12 +104,13 @@ export const IndividualPerformanceReport = () => {
   }, [selectedDoctor, selectedMonth, selectedYear]);
 
   const fetchDoctors = async () => {
-    const { data, error } = await supabase
-      .from('doctors')
-      .select('*')
-      .order('name');
+    const savedSheetId = localStorage.getItem('googleSheetId');
+    if (!savedSheetId) return;
+
+    const { googleSheetsService } = await import('@/services/googleSheetsService');
+    const data = await googleSheetsService.getDoctors();
     
-    if (data && !error) {
+    if (data) {
       setDoctors(data);
     }
   };

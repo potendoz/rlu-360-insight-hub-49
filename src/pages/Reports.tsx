@@ -160,6 +160,9 @@ export const Reports = () => {
   const [showCostAnalysis, setShowCostAnalysis] = useState(false);
   const [showRCAReport, setShowRCAReport] = useState(false);
 
+  // Check if connected
+  const isConnected = !!localStorage.getItem('googleSheetId');
+
   const filteredReports = reportsData.filter(report => {
     const matchesType = selectedType === "all" || report.type === selectedType;
     const matchesPeriod = selectedPeriod === "all" || report.period.includes(selectedPeriod);
@@ -279,6 +282,32 @@ export const Reports = () => {
 
         {/* RCA Report Component */}
         <RCAReport />
+      </div>
+    );
+  }
+
+  // Show connection warning if not connected
+  if (!isConnected) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Reports & Analytics</h1>
+            <p className="text-muted-foreground">Generate and download comprehensive RLU performance reports</p>
+          </div>
+        </div>
+        <Card className="p-12">
+          <div className="text-center space-y-4">
+            <FileText className="h-16 w-16 text-warning mx-auto" />
+            <h2 className="text-2xl font-semibold">ไม่พบการเชื่อมต่อ Google Sheet</h2>
+            <p className="text-muted-foreground">
+              กรุณาไปที่หน้า Data Input เพื่อเชื่อมต่อ Google Sheet ID ก่อนดูรายงานต่างๆ
+            </p>
+            <Button onClick={() => window.location.href = '/data-input'}>
+              ไปที่หน้า Data Input
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
