@@ -15,6 +15,7 @@ import { Analytics } from "./pages/Analytics";
 import { Analysis } from "./pages/Analysis";
 import { DataInput } from "./pages/DataInput";
 import { PerformanceReport } from "./pages/PerformanceReport";
+import { Admin } from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "@/hooks/useAuth";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
@@ -102,6 +103,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Layout><PerformanceReport /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/admin" 
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <Layout><Admin /></Layout>
           </ProtectedRoute>
         } 
       />
