@@ -272,53 +272,6 @@ export class GoogleSheetsService {
     return await this.fetchSheetData(sheetName);
   }
 
-  async getUsers() {
-    try {
-      console.log('Starting to fetch users data...');
-      const data = await this.fetchSheetData('users');
-      console.log('Raw users data:', data);
-      
-      if (data.length <= 1) {
-        console.warn('No users found or only headers present');
-        return [];
-      }
-      
-      const [headers, ...rows] = data;
-      console.log('Users headers:', headers);
-      console.log('Users rows sample:', rows.slice(0, 3));
-      
-      // Map ตาม column structure ใน Google Sheets users tab
-      // "email","name","role","department","status","last_login","avatar_url","created_at","updated_at","password","Google Sheet ID"
-      return rows.map(row => ({
-        email: row[0] || '',
-        name: row[1] || '',
-        role: row[2] || '',
-        department: row[3] || '',
-        status: row[4] || '',
-        last_login: row[5] || '',
-        avatar_url: row[6] || '',
-        created_at: row[7] || '',
-        updated_at: row[8] || '',
-        password: row[9] || '',
-        google_sheet_id: row[10] || '' // คอลัมน์ L ตามภาพ
-      }));
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      return [];
-    }
-  }
-
-  async getUserSheetId(email: string): Promise<string | null> {
-    try {
-      const users = await this.getUsers();
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      return user?.google_sheet_id || null;
-    } catch (error) {
-      console.error('Error getting user sheet ID:', error);
-      return null;
-    }
-  }
-
   // Methods to add data to sheets would require Google Sheets API write permissions
   // For now, we'll focus on reading data
   async addDataToSheet(sheetName: string, data: any[]) {
