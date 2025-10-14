@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { googleSheetsService } from './googleSheetsService';
 
 interface User {
   id: string;
@@ -69,21 +70,40 @@ class AuthService {
 
   private async getUserFromDatabase(email: string): Promise<any> {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (error) {
-        console.error('Database query error:', error);
+      // ดึงข้อมูล user จาก Google Sheet แทน Supabase
+      console.log(`Fetching user from Google Sheet for email: ${email}`);
+      
+      // ใช้ master sheet ID เพื่อดึงข้อมูล users
+      const masterSheetId = '1tDAAMnE7P3QBcf15pbinGqEIX5HuOzlyD-w0-KVoc2A';
+      googleSheetsService.setCredentials(masterSheetId);
+      
+      const users = await googleSheetsService.getUsers();
+      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      
+      if (!user) {
+        console.warn(`User not found in Google Sheet: ${email}`);
         return null;
       }
-
-      return data;
+      
+      if (user.status.toLowerCase() !== 'active') {
+        console.warn(`User is not active: ${email}`);
+        return null;
+      }
+      
+      console.log(`User found in Google Sheet:`, user);
+      
+      // แปลงเป็น format ที่ระบบคาดหวัง
+      return {
+        id: user.email, // ใช้ email เป็น id
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatar_url: user.avatar_url,
+        password: user.password,
+        google_sheet_id: user.google_sheet_id
+      };
     } catch (error) {
-      console.error('Database connection error:', error);
+      console.error('Error fetching user from Google Sheet:', error);
       return null;
     }
   }
@@ -144,11 +164,10 @@ class AuthService {
         avatar: userData.avatar_url
       };
 
-      // Update last login
-      await supabase
-        .from('users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', userData.id);
+      // บันทึก Google Sheet ID ไว้ใน sessionStorage สำหรับใช้งานภายหลัง
+      if (userData.google_sheet_id) {
+        sessionStorage.setItem('user_google_sheet_id', userData.google_sheet_id);
+      }
 
       this.setUser(user);
       this.logAuthEvent(user.id, user.role, 'email_login', 'success');
@@ -175,11 +194,10 @@ class AuthService {
       avatar: userData.avatar_url
     };
 
-    // Update last login
-    await supabase
-      .from('users')
-      .update({ last_login: new Date().toISOString() })
-      .eq('id', userData.id);
+    // บันทึก Google Sheet ID ไว้ใน sessionStorage สำหรับใช้งานภายหลัง
+    if (userData.google_sheet_id) {
+      sessionStorage.setItem('user_google_sheet_id', userData.google_sheet_id);
+    }
 
     this.setUser(user);
     this.logAuthEvent(user.id, user.role, 'google_oauth', 'success');
@@ -206,6 +224,7 @@ class AuthService {
     };
     
     sessionStorage.removeItem('rlu360_auth');
+    sessionStorage.removeItem('user_google_sheet_id');
     this.logAuthEvent(
       this.authState.user?.id || 'unknown',
       this.authState.user?.role || 'unknown',
