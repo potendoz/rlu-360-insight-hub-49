@@ -285,22 +285,33 @@ export class GoogleSheetsService {
       
       const [headers, ...rows] = data;
       console.log('Users headers:', headers);
-      console.log('Users rows sample:', rows.slice(0, 3));
+      console.log('Users data rows count:', rows.length);
+      console.log('First user row:', rows[0]);
       
       // Map ตาม column structure: Email, Name, Role, Department, Status, Last Login, Avatar Url, Created At, Updated At, Password, Google Sheet ID
-      return rows.map(row => ({
-        email: row[0] || '',
-        name: row[1] || '',
-        role: row[2] || '',
-        department: row[3] || '',
-        status: row[4] || '',
-        last_login: row[5] || '',
-        avatar_url: row[6] || '',
-        created_at: row[7] || '',
-        updated_at: row[8] || '',
-        password: row[9] || '',
-        google_sheet_id: row[10] || '' // Column K (Google Sheet ID)
-      }));
+      // ข้าม header row ที่ index 0
+      const users = rows
+        .filter(row => row[1] && row[1].toLowerCase() !== 'email') // กรอง header row ที่อาจซ้ำ และ row ว่าง
+        .map(row => {
+          const user = {
+            email: (row[1] || '').trim(),
+            name: (row[2] || '').trim(),
+            role: (row[3] || '').trim(),
+            department: (row[4] || '').trim(),
+            status: (row[5] || '').trim(),
+            last_login: (row[6] || '').trim(),
+            avatar_url: (row[7] || '').trim(),
+            created_at: (row[8] || '').trim(),
+            updated_at: (row[9] || '').trim(),
+            password: (row[10] || '').trim(),
+            google_sheet_id: (row[11] || '').trim()
+          };
+          console.log('Mapped user:', user.email, user.role, user.status);
+          return user;
+        });
+      
+      console.log('Total users mapped:', users.length);
+      return users;
     } catch (error) {
       console.error('Error fetching users:', error);
       return [];
