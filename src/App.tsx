@@ -23,6 +23,11 @@ import { SessionTimer } from "@/components/SessionTimer";
 
 const queryClient = new QueryClient();
 
+const RedirectRoute = () => {
+  const { getDefaultRoute } = useAuth();
+  return <Navigate to={getDefaultRoute()} replace />;
+};
+
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
   
@@ -127,7 +132,7 @@ const AppRoutes = () => {
       {isAuthenticated && (
         <Route 
           path="/" 
-          element={<Navigate to="/data-input" replace />} 
+          element={<RedirectRoute />} 
         />
       )}
       

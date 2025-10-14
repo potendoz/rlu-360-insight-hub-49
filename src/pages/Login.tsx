@@ -15,7 +15,7 @@ export const Login = () => {
   const { isAuthenticated, login, loginWithEmail, user, getDefaultRoute } = useAuth();
   const { t } = useI18n();
   const location = useLocation();
-  const from = '/data-input';
+  const from = getDefaultRoute();
 
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState('');

@@ -279,7 +279,11 @@ class AuthService {
   }
 
   getDefaultRoute(): string {
-    return '/data-input';
+    const role = this.authState.user?.role;
+    if (role === 'admin') {
+      return '/data-input';
+    }
+    return '/dashboard';
   }
 
   private logAuthEvent(userId: string, role: string, action: string, status: string) {
