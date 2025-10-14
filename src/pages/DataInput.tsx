@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { googleSheetsService } from "@/services/googleSheetsService";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Plus, 
   Database, 
@@ -113,7 +114,9 @@ export const DataInput = () => {
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [sheetId, setSheetId] = useState("1tDAAMnE7P3QBcf15pbinGqEIX5HuOzlyD-w0-KVoc2A");
   const [isConnected, setIsConnected] = useState(false);
+  const [masterSheetId] = useState("1tDAAMnE7P3QBcf15pbinGqEIX5HuOzlyD-w0-KVoc2A"); // Master sheet ที่มี users tab
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Form instances
   const doctorForm = useForm({
@@ -326,16 +329,59 @@ export const DataInput = () => {
     }
   };
 
-  // Load sheet ID from localStorage on component mount
+  // Auto-connect to user's Google Sheet based on logged-in email
   useEffect(() => {
-    const storedSheetId = localStorage.getItem("googleSheetId");
-    
-    if (storedSheetId) {
-      setSheetId(storedSheetId);
-      setIsConnected(true);
-      loadExistingData();
-    }
-  }, []);
+    const autoConnectUserSheet = async () => {
+      if (!user?.email) {
+        console.log('No user email found');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // เชื่อมต่อ master sheet เพื่อดึงข้อมูล user
+        googleSheetsService.setCredentials(masterSheetId);
+        
+        // ดึง Google Sheet ID ของ user จาก tab users
+        const userSheetId = await googleSheetsService.getUserSheetId(user.email);
+        
+        if (userSheetId) {
+          console.log(`Found user sheet ID: ${userSheetId} for ${user.email}`);
+          setSheetId(userSheetId);
+          
+          // เชื่อมต่อกับ sheet ของ user
+          googleSheetsService.setCredentials(userSheetId);
+          setIsConnected(true);
+          
+          // โหลดข้อมูลจาก sheet ของ user
+          await loadExistingData();
+          
+          toast({
+            title: "เชื่อมต่อสำเร็จ",
+            description: `เชื่อมต่อกับ Google Sheet ของคุณแล้ว`,
+          });
+        } else {
+          console.warn(`No Google Sheet ID found for user: ${user.email}`);
+          toast({
+            title: "ไม่พบข้อมูล",
+            description: "ไม่พบ Google Sheet ID สำหรับผู้ใช้นี้ กรุณาติดต่อผู้ดูแลระบบ",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('Error auto-connecting to user sheet:', error);
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถเชื่อมต่อกับ Google Sheet ของคุณได้",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    autoConnectUserSheet();
+  }, [user?.email]);
 
   const quickActions = [
     { id: "doctors", label: "Doctors", icon: Stethoscope, color: "bg-blue-500" },
