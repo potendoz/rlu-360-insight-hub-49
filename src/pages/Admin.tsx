@@ -17,7 +17,7 @@ import {
   X,
   Info
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { googleSheetsService } from "@/services/googleSheetsService";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -224,15 +224,32 @@ export const Admin = () => {
   }, []);
 
   const fetchUsers = async () => {
+    const sheetId = localStorage.getItem('googleSheetId');
+    if (!sheetId) {
+      toast({
+        title: "ไม่พบการเชื่อมต่อ",
+        description: "กรุณาเชื่อมต่อ Google Sheet ID ที่หน้า Data Input",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUsers(data || []);
+      const data = await googleSheetsService.getUsers();
+      const formattedUsers = data.map((user: any, index: number) => ({
+        id: (index + 1).toString(),
+        email: user.email || '',
+        name: user.name || '',
+        role: user.role || '',
+        department: user.department || null,
+        status: user.status || 'active',
+        last_login: user.last_login || null,
+        avatar_url: user.avatar_url || null,
+        password: user.password || null,
+        created_at: user.created_at || new Date().toISOString()
+      }));
+      setUsers(formattedUsers);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -245,24 +262,8 @@ export const Admin = () => {
   };
 
   const fetchRolePermissions = async () => {
-    setPermissionsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('role_permissions')
-        .select('*')
-        .order('role', { ascending: true });
-
-      if (error) throw error;
-      setRolePermissions(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setPermissionsLoading(false);
-    }
+    setPermissionsLoading(false);
+    setRolePermissions([]);
   };
 
 
@@ -293,81 +294,40 @@ export const Admin = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "User deleted successfully",
-      });
-      fetchUsers();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "ไม่รองรับ",
+      description: "การลบข้อมูลต้องทำผ่าน Google Sheet โดยตรง",
+      variant: "destructive",
+    });
   };
 
   const handleSaveUser = async () => {
-    try {
-      if (editingUser) {
-        // Update existing user
-        const { error } = await supabase
-          .from('users')
-          .update({
-            email: formData.email,
-            name: formData.name,
-            role: formData.role,
-            department: formData.department || null,
-            status: formData.status,
-            password: formData.password
-          })
-          .eq('id', editingUser.id);
-
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "User updated successfully",
-        });
-      } else {
-        // Add new user
-        const { error } = await supabase
-          .from('users')
-          .insert({
-            email: formData.email,
-            name: formData.name,
-            role: formData.role,
-            department: formData.department || null,
-            status: formData.status,
-            password: formData.password
-          });
-
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "User added successfully",
-        });
-      }
-
-      setIsDialogOpen(false);
-      fetchUsers();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "ไม่รองรับ",
+      description: "การเพิ่มหรือแก้ไขข้อมูลต้องทำผ่าน Google Sheet โดยตรง",
+      variant: "destructive",
+    });
+    setIsDialogOpen(false);
   };
+
+  const isConnected = !!localStorage.getItem('googleSheetId');
+
+  if (!isConnected) {
+    return (
+      <div className="p-6">
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+          <AlertTriangle className="h-16 w-16 text-warning mb-4" />
+          <h2 className="text-2xl font-bold text-foreground mb-2">ไม่พบการเชื่อมต่อ Google Sheet</h2>
+          <p className="text-muted-foreground mb-4">
+            กรุณาเชื่อมต่อ Google Sheet ID ที่หน้า Data Input ก่อนดูข้อมูลผู้ใช้งาน
+          </p>
+          <Button onClick={() => window.location.href = '/data-input'}>
+            ไปที่หน้า Data Input
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -375,7 +335,7 @@ export const Admin = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">System Administration</h1>
-          <p className="text-muted-foreground">Manage users, system settings, and monitor performance</p>
+          <p className="text-muted-foreground">จัดการผู้ใช้งานจาก Google Sheets</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
