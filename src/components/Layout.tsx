@@ -14,7 +14,6 @@ const navigationItems = [
   { name: "Performance Report", href: "/performance-report", icon: TrendingUp },
   { name: "nav.reports", href: "/reports", icon: FileText },
   { name: "Data Input", href: "/data-input", icon: Settings },
-  { name: "nav.admin", href: "/admin", icon: Settings },
 ];
 
 interface LayoutProps {
