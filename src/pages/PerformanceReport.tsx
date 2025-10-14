@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { KPIChart } from '@/components/charts/KPIChart';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -78,13 +79,12 @@ export const PerformanceReport = () => {
   }, [selectedDoctor]);
 
   const loadDoctors = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('id, name, department')
-        .order('name');
+    const savedSheetId = localStorage.getItem('googleSheetId');
+    if (!savedSheetId) return;
 
-      if (error) throw error;
+    try {
+      const { googleSheetsService } = await import('@/services/googleSheetsService');
+      const data = await googleSheetsService.getDoctors();
       setDoctors(data || []);
     } catch (error) {
       console.error('Error loading doctors:', error);
@@ -99,24 +99,15 @@ export const PerformanceReport = () => {
   const loadMismatchData = async (doctorId: string) => {
     setLoading(true);
     try {
-      const [mismatchResponse, analysisResponse] = await Promise.all([
-        supabase
-          .from('mismatch_data')
-          .select('*')
-          .eq('doctor_id', doctorId)
-          .order('year, month'),
-        supabase
-          .from('mismatch_analysis')
-          .select('*')
-          .eq('doctor_id', doctorId)
-          .order('year, month')
-      ]);
+      const { googleSheetsService } = await import('@/services/googleSheetsService');
+      const mismatchDataAll = await googleSheetsService.getMismatchData();
+      const analysisDataAll = await googleSheetsService.getMismatchAnalysis();
 
-      if (mismatchResponse.error) throw mismatchResponse.error;
-      if (analysisResponse.error) throw analysisResponse.error;
+      const filteredMismatch = mismatchDataAll.filter(d => d.doctor_id === doctorId);
+      const filteredAnalysis = analysisDataAll.filter(d => d.doctor_id === doctorId);
 
-      setMismatchData(mismatchResponse.data || []);
-      setAnalysisData(analysisResponse.data || []);
+      setMismatchData(filteredMismatch || []);
+      setAnalysisData(filteredAnalysis || []);
     } catch (error) {
       console.error('Error loading mismatch data:', error);
       toast({
@@ -132,22 +123,12 @@ export const PerformanceReport = () => {
   const loadAllMismatchData = async () => {
     setLoading(true);
     try {
-      const [mismatchResponse, analysisResponse] = await Promise.all([
-        supabase
-          .from('mismatch_data')
-          .select('*')
-          .order('year, month'),
-        supabase
-          .from('mismatch_analysis')
-          .select('*')
-          .order('year, month')
-      ]);
+      const { googleSheetsService } = await import('@/services/googleSheetsService');
+      const mismatchDataAll = await googleSheetsService.getMismatchData();
+      const analysisDataAll = await googleSheetsService.getMismatchAnalysis();
 
-      if (mismatchResponse.error) throw mismatchResponse.error;
-      if (analysisResponse.error) throw analysisResponse.error;
-
-      setMismatchData(mismatchResponse.data || []);
-      setAnalysisData(analysisResponse.data || []);
+      setMismatchData(mismatchDataAll || []);
+      setAnalysisData(analysisDataAll || []);
     } catch (error) {
       console.error('Error loading mismatch data:', error);
       toast({
@@ -296,6 +277,45 @@ export const PerformanceReport = () => {
         .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
     })()
   };
+
+  // Check if connected
+  const isConnected = !!localStorage.getItem('googleSheetId');
+
+  if (!isConnected) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-primary to-primary/70 rounded-xl shadow-lg">
+                <BarChart3 className="h-8 w-8 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  Performance
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  Comprehensive mismatch analysis and trends by physician
+                </p>
+              </div>
+            </div>
+          </div>
+          <Card className="p-12">
+            <div className="text-center space-y-4">
+              <BarChart3 className="h-16 w-16 text-warning mx-auto" />
+              <h2 className="text-2xl font-semibold">ไม่พบการเชื่อมต่อ Google Sheet</h2>
+              <p className="text-muted-foreground">
+                กรุณาไปที่หน้า Data Input เพื่อเชื่อมต่อ Google Sheet ID ก่อนดูรายงานผลการปฏิบัติงาน
+              </p>
+              <Button onClick={() => window.location.href = '/data-input'}>
+                ไปที่หน้า Data Input
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6">

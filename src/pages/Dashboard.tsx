@@ -119,8 +119,13 @@ export const Dashboard = () => {
   const { t } = useI18n();
   const { toast } = useToast();
 
+  // Check if connected to Google Sheets
+  const isConnected = !!localStorage.getItem('googleSheetId');
+
   // Fetch top performing doctors based on selected month and year
   const fetchTopDoctors = async () => {
+    if (!isConnected) return;
+    
     try {
       setDoctorsLoading(true);
       
@@ -173,7 +178,8 @@ export const Dashboard = () => {
         setLoading(true);
         
         // Check if Google Sheets is configured
-        if (!googleSheetsService.isConfigured()) {
+        const savedSheetId = localStorage.getItem('googleSheetId');
+        if (!savedSheetId) {
           console.warn('Google Sheets not configured');
           setLoading(false);
           return;
@@ -487,6 +493,32 @@ export const Dashboard = () => {
       description: "Opening physician feedback review panel...",
     });
   };
+
+  // Show connection warning if not connected
+  if (!isConnected) {
+    return (
+      <div className="space-y-6" data-pdf-content>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">{t('dashboard.title')}</h1>
+            <p className="text-muted-foreground mt-1">{t('dashboard.subtitle')}</p>
+          </div>
+        </div>
+        <Card className="p-12">
+          <div className="text-center space-y-4">
+            <AlertTriangle className="h-16 w-16 text-warning mx-auto" />
+            <h2 className="text-2xl font-semibold">ไม่พบการเชื่อมต่อ Google Sheet</h2>
+            <p className="text-muted-foreground">
+              กรุณาไปที่หน้า Data Input เพื่อเชื่อมต่อ Google Sheet ID ก่อนใช้งาน Dashboard
+            </p>
+            <Button onClick={() => window.location.href = '/data-input'}>
+              ไปที่หน้า Data Input
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" data-pdf-content>

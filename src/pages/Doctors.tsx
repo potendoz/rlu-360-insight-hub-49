@@ -175,32 +175,15 @@ export const Doctors = () => {
       
       // Check if Google Sheets is configured
       const savedSheetId = localStorage.getItem('googleSheetId');
-      let doctors, monthlyData;
-      
-      if (savedSheetId) {
-        // Use Google Sheets data
-        const { googleSheetsService } = await import('@/services/googleSheetsService');
-        doctors = await googleSheetsService.getDoctors();
-        monthlyData = await googleSheetsService.getMonthlyData();
-      } else {
-        // Fallback to Supabase
-        const { data: doctorsData, error: doctorsError } = await supabase
-          .from('doctors')
-          .select('*')
-          .order('name');
-
-        if (doctorsError) throw doctorsError;
-
-        const { data: monthlyDataResult, error: monthlyError } = await supabase
-          .from('doctor_monthly_data')
-          .select('*')
-          .order('month');
-
-        if (monthlyError) throw monthlyError;
-        
-        doctors = doctorsData;
-        monthlyData = monthlyDataResult;
+      if (!savedSheetId) {
+        setLoading(false);
+        return;
       }
+      
+      // Use Google Sheets data only
+      const { googleSheetsService } = await import('@/services/googleSheetsService');
+      const doctors = await googleSheetsService.getDoctors();
+      const monthlyData = await googleSheetsService.getMonthlyData();
 
       // Combine doctors with their monthly data
       const doctorsWithData = doctors.map(doctor => ({
@@ -217,13 +200,13 @@ export const Doctors = () => {
             cpg_mismatch_percentage: data.cpg_mismatch_percentage || 0,
             duplicate_order_rate: data.duplicate_order_rate || 0,
             estimated_cost: data.estimated_cost || 0,
-            cost_savings: data.cost_savings || 0,
+            cost_savings: 0, // Not in Google Sheets
             cp_ratio: data.cp_ratio || 0,
-            test_reduction: data.test_reduction || 0,
-            patients_count: data.patients_count || 0,
-            total_tests: data.total_tests || 0,
-            duplicate_tests: data.duplicate_tests || 0,
-            cpg_mismatch: data.cpg_mismatch || 0,
+            test_reduction: 0, // Not in Google Sheets
+            patients_count: data.total_patient || 0,
+            total_tests: data.total_lab || 0,
+            duplicate_tests: 0, // Calculate from duplicate_order_rate if needed
+            cpg_mismatch: 0, // Not in Google Sheets
           }))
       }));
 
@@ -484,6 +467,34 @@ export const Doctors = () => {
     }),
     isJudge
   );
+
+  // Check if connected
+  const isConnected = !!localStorage.getItem('googleSheetId');
+
+  if (!isConnected) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Doctor Management</h1>
+            <p className="text-muted-foreground">Monitor and analyze doctor performance in RLU implementation</p>
+          </div>
+        </div>
+        <Card className="p-12">
+          <div className="text-center space-y-4">
+            <User className="h-16 w-16 text-warning mx-auto" />
+            <h2 className="text-2xl font-semibold">ไม่พบการเชื่อมต่อ Google Sheet</h2>
+            <p className="text-muted-foreground">
+              กรุณาไปที่หน้า Data Input เพื่อเชื่อมต่อ Google Sheet ID ก่อนดูข้อมูลแพทย์
+            </p>
+            <Button onClick={() => window.location.href = '/data-input'}>
+              ไปที่หน้า Data Input
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

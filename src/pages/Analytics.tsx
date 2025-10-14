@@ -89,47 +89,43 @@ export const Analytics = () => {
   }, [selectedDoctor, selectedMonth, selectedYear]);
 
   const fetchData = async () => {
+    const savedSheetId = localStorage.getItem('googleSheetId');
+    if (!savedSheetId) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      // Fetch doctors
-      const { data: doctorsData } = await supabase
-        .from('doctors')
-        .select('*')
-        .order('name');
-
-      // Fetch mismatch data
-      let mismatchQuery = supabase
-        .from('mismatch_data')
-        .select('*');
+      // Use Google Sheets data
+      const { googleSheetsService } = await import('@/services/googleSheetsService');
+      const doctorsData = await googleSheetsService.getDoctors();
+      const mismatchDataAll = await googleSheetsService.getMismatchData();
+      const analysisDataAll = await googleSheetsService.getMismatchAnalysis();
       
+      // Filter mismatch data
+      let filteredMismatchData = mismatchDataAll;
       if (selectedDoctor !== "all") {
-        mismatchQuery = mismatchQuery.eq('doctor_id', selectedDoctor);
+        filteredMismatchData = filteredMismatchData.filter(d => d.doctor_id === selectedDoctor);
       }
       if (selectedMonth !== "January") {
-        mismatchQuery = mismatchQuery.eq('month', selectedMonth);
+        filteredMismatchData = filteredMismatchData.filter(d => d.month === selectedMonth);
       }
-      mismatchQuery = mismatchQuery.eq('year', parseInt(selectedYear));
+      filteredMismatchData = filteredMismatchData.filter(d => d.year === parseInt(selectedYear));
 
-      const { data: mismatchData } = await mismatchQuery;
-
-      // Fetch mismatch analysis
-      let analysisQuery = supabase
-        .from('mismatch_analysis')
-        .select('*');
-      
+      // Filter analysis data
+      let filteredAnalysisData = analysisDataAll;
       if (selectedDoctor !== "all") {
-        analysisQuery = analysisQuery.eq('doctor_id', selectedDoctor);
+        filteredAnalysisData = filteredAnalysisData.filter(d => d.doctor_id === selectedDoctor);
       }
       if (selectedMonth !== "January") {
-        analysisQuery = analysisQuery.eq('month', selectedMonth);
+        filteredAnalysisData = filteredAnalysisData.filter(d => d.month === selectedMonth);
       }
-      analysisQuery = analysisQuery.eq('year', parseInt(selectedYear));
-
-      const { data: analysisData } = await analysisQuery;
+      filteredAnalysisData = filteredAnalysisData.filter(d => d.year === parseInt(selectedYear));
 
       setDoctors(doctorsData || []);
-      setMismatchData(mismatchData || []);
-      setMismatchAnalysis(analysisData || []);
+      setMismatchData(filteredMismatchData || []);
+      setMismatchAnalysis(filteredAnalysisData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -261,6 +257,34 @@ export const Analytics = () => {
   const months = ["January", "February", "March", "April", "May", "June", 
                   "July", "August", "September", "October", "November", "December"];
   const years = ["2023", "2024", "2025"];
+
+  // Check if connected
+  const isConnected = !!localStorage.getItem('googleSheetId');
+
+  if (!isConnected) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Analytics - Mismatch Data</h1>
+            <p className="text-muted-foreground">Real-time insights into CPG mismatch and analysis</p>
+          </div>
+        </div>
+        <Card className="p-12">
+          <div className="text-center space-y-4">
+            <BarChart3 className="h-16 w-16 text-warning mx-auto" />
+            <h2 className="text-2xl font-semibold">ไม่พบการเชื่อมต่อ Google Sheet</h2>
+            <p className="text-muted-foreground">
+              กรุณาไปที่หน้า Data Input เพื่อเชื่อมต่อ Google Sheet ID ก่อนดูข้อมูล Analytics
+            </p>
+            <Button onClick={() => window.location.href = '/data-input'}>
+              ไปที่หน้า Data Input
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
