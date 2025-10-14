@@ -304,19 +304,25 @@ export const DataInput = () => {
 
     setIsLoading(true);
     try {
-      // Temporarily set credentials to fetch users
-      googleSheetsService.setCredentials(sheetId);
+      // Get the logged-in user's Google Sheet ID from sessionStorage
+      const userSheetId = sessionStorage.getItem('user_google_sheet_id');
       
-      // Fetch users to validate sheet ID
-      const users = await googleSheetsService.getUsers();
-      
-      // Check if the entered sheet ID exists in any user's google_sheet_id column
-      const matchingUser = users.find(user => user.google_sheet_id === sheetId);
-      
-      if (!matchingUser) {
+      if (!userSheetId) {
         toast({
           title: "ไม่สามารถเชื่อมต่อได้",
-          description: "Google Sheet ID ไม่ตรงกับข้อมูลในระบบ กรุณาตรวจสอบและลองใหม่อีกครั้ง",
+          description: "ไม่พบข้อมูล Google Sheet ID ของผู้ใช้ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
+          variant: "destructive",
+        });
+        setIsConnected(false);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Check if the entered sheet ID matches the user's assigned Google Sheet ID
+      if (sheetId !== userSheetId) {
+        toast({
+          title: "ไม่มีสิทธิ์เข้าถึง",
+          description: "Google Sheet ID นี้ไม่ได้รับอนุญาตสำหรับบัญชีของคุณ กรุณาใช้ Google Sheet ID ที่ถูกกำหนดให้เท่านั้น",
           variant: "destructive",
         });
         setIsConnected(false);
@@ -325,6 +331,7 @@ export const DataInput = () => {
       }
       
       // If validation passes, proceed with connection
+      googleSheetsService.setCredentials(sheetId);
       setIsConnected(true);
       localStorage.setItem("googleSheetId", sheetId);
       
