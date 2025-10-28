@@ -4,7 +4,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PDFExport } from "./PDFExport";
-import { supabase } from '@/integrations/supabase/client';
 import { User, BarChart3, TrendingUp, AlertTriangle, CheckCircle, Target } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useAuth } from "@/hooks/useAuth";
@@ -129,97 +128,95 @@ export const IndividualPerformanceReport = () => {
     setLoading(true);
     
     try {
+      // Load Google Sheets Service
+      const { googleSheetsService } = await import('@/services/googleSheetsService');
+      
+      // Fetch all monthly data from Google Sheets
+      const allMonthlyData = await googleSheetsService.getMonthlyData();
+      console.log('All monthly data:', allMonthlyData);
+      
       // Fetch current month data
-      const { data: currentMonthData } = await supabase
-        .from('doctor_monthly_data')
-        .select('*')
-        .eq('doctor_id', selectedDoctor)
-        .eq('month', selectedMonth)
-        .eq('year', parseInt(selectedYear))
-        .single();
-
-      setCurrentData(currentMonthData);
+      const currentMonthData = allMonthlyData.find(
+        (d: any) => d.doctor_id === selectedDoctor && 
+                   d.month === selectedMonth && 
+                   d.year === parseInt(selectedYear)
+      );
+      
+      console.log('Current month data:', currentMonthData);
+      setCurrentData(currentMonthData || null);
 
       // Fetch previous month data for comparison
       const { month: prevMonth, year: prevYear } = getPreviousMonth(selectedMonth, parseInt(selectedYear));
-      const { data: previousMonthData } = await supabase
-        .from('doctor_monthly_data')
-        .select('*')
-        .eq('doctor_id', selectedDoctor)
-        .eq('month', prevMonth)
-        .eq('year', prevYear)
-        .maybeSingle();
+      const previousMonthData = allMonthlyData.find(
+        (d: any) => d.doctor_id === selectedDoctor && 
+                   d.month === prevMonth && 
+                   d.year === prevYear
+      );
 
-      setPreviousData(previousMonthData);
+      setPreviousData(previousMonthData || null);
 
-      // Fetch 6 months historical data
-      const { data: historical } = await supabase
-        .from('doctor_monthly_data')
-        .select('*')
-        .eq('doctor_id', selectedDoctor)
-        .eq('year', parseInt(selectedYear))
-        .order('month');
+      // Fetch historical data for this doctor
+      const historical = allMonthlyData.filter(
+        (d: any) => d.doctor_id === selectedDoctor && d.year === parseInt(selectedYear)
+      );
+      
+      setHistoricalData(historical);
 
-      setHistoricalData(historical || []);
-
-      // Fetch average data for comparison
-      const { data: avgData } = await supabase
-        .from('doctor_monthly_data')
-        .select('*')
-        .eq('year', parseInt(selectedYear))
-        .order('month');
-
-      // Calculate averages by month
+      // Calculate averages by month from all doctors
       const monthlyAverages = months.map(month => {
-        const monthData = avgData?.filter(d => d.month === month) || [];
+        const monthData = allMonthlyData.filter(
+          (d: any) => d.month === month && d.year === parseInt(selectedYear)
+        );
+        
         if (monthData.length === 0) return null;
 
         return {
           month,
           year: parseInt(selectedYear),
-          total_patient: Math.round(monthData.reduce((sum, d) => sum + (d.total_patient || 0), 0) / monthData.length),
-          total_lab: Math.round(monthData.reduce((sum, d) => sum + (d.total_lab || 0), 0) / monthData.length),
-          rlu_score: Math.round((monthData.reduce((sum, d) => sum + (d.rlu_score || 0), 0) / monthData.length) * 100) / 100,
-          lp_ratio: Math.round((monthData.reduce((sum, d) => sum + (d.lp_ratio || 0), 0) / monthData.length) * 100) / 100,
-          cp_ratio: Math.round((monthData.reduce((sum, d) => sum + (d.cp_ratio || 0), 0) / monthData.length) * 100) / 100,
-          cpg_mismatch_percentage: Math.round((monthData.reduce((sum, d) => sum + (d.cpg_mismatch_percentage || 0), 0) / monthData.length) * 100) / 100,
-          duplicate_order_rate: Math.round((monthData.reduce((sum, d) => sum + (d.duplicate_order_rate || 0), 0) / monthData.length) * 100) / 100,
+          total_patient: Math.round(monthData.reduce((sum: number, d: any) => sum + (d.total_patient || 0), 0) / monthData.length),
+          total_lab: Math.round(monthData.reduce((sum: number, d: any) => sum + (d.total_lab || 0), 0) / monthData.length),
+          rlu_score: Math.round((monthData.reduce((sum: number, d: any) => sum + (d.rlu_score || 0), 0) / monthData.length) * 100) / 100,
+          lp_ratio: Math.round((monthData.reduce((sum: number, d: any) => sum + (d.lp_ratio || 0), 0) / monthData.length) * 100) / 100,
+          cp_ratio: Math.round((monthData.reduce((sum: number, d: any) => sum + (d.cp_ratio || 0), 0) / monthData.length) * 100) / 100,
+          cpg_mismatch_percentage: Math.round((monthData.reduce((sum: number, d: any) => sum + (d.cpg_mismatch_percentage || 0), 0) / monthData.length) * 100) / 100,
+          duplicate_order_rate: Math.round((monthData.reduce((sum: number, d: any) => sum + (d.duplicate_order_rate || 0), 0) / monthData.length) * 100) / 100,
         };
       }).filter(Boolean) as MonthlyData[];
 
       setAverageData(monthlyAverages);
 
-      // Fetch mismatch data
-      const { data: mismatch } = await supabase
-        .from('mismatch_data')
-        .select('*')
-        .eq('doctor_id', selectedDoctor)
-        .eq('month', selectedMonth)
-        .eq('year', parseInt(selectedYear))
-        .single();
+      // Fetch all mismatch data from Google Sheets
+      const allMismatchData = await googleSheetsService.getMismatchData();
+      console.log('All mismatch data:', allMismatchData);
+      
+      // Find mismatch data for current doctor and month
+      const mismatch = allMismatchData.find(
+        (d: any) => d.doctor_id === selectedDoctor && 
+                   d.month === selectedMonth && 
+                   d.year === parseInt(selectedYear)
+      );
 
-      setMismatchData(mismatch);
+      setMismatchData(mismatch || null);
 
-      // Fetch mismatch analysis
-      const { data: analysis } = await supabase
-        .from('mismatch_analysis')
-        .select('*')
-        .eq('doctor_id', selectedDoctor)
-        .eq('month', selectedMonth)
-        .eq('year', parseInt(selectedYear))
-        .single();
+      // Fetch all mismatch analysis from Google Sheets
+      const allMismatchAnalysis = await googleSheetsService.getMismatchAnalysis();
+      console.log('All mismatch analysis:', allMismatchAnalysis);
+      
+      // Find mismatch analysis for current doctor and month
+      const analysis = allMismatchAnalysis.find(
+        (d: any) => d.doctor_id === selectedDoctor && 
+                   d.month === selectedMonth && 
+                   d.year === parseInt(selectedYear)
+      );
 
-      setMismatchAnalysis(analysis);
+      setMismatchAnalysis(analysis || null);
 
-      // Fetch historical mismatch data (6 months)
-      const { data: histMismatch } = await supabase
-        .from('mismatch_data')
-        .select('*')
-        .eq('doctor_id', selectedDoctor)
-        .eq('year', parseInt(selectedYear))
-        .order('month');
+      // Fetch historical mismatch data for this doctor
+      const histMismatch = allMismatchData.filter(
+        (d: any) => d.doctor_id === selectedDoctor && d.year === parseInt(selectedYear)
+      );
 
-      setHistoricalMismatch(histMismatch || []);
+      setHistoricalMismatch(histMismatch);
 
     } catch (error) {
       console.error('Error fetching report data:', error);
