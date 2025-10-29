@@ -337,106 +337,6 @@ export const Admin = () => {
           <h1 className="text-3xl font-bold text-foreground">System Administration</h1>
           <p className="text-muted-foreground">จัดการผู้ใช้งานจาก Google Sheets</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2" onClick={handleAddUser}>
-              <Plus className="h-4 w-4" />
-              Add User
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingUser ? 'Edit User' : 'Add New User'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  placeholder="user@example.com"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="Full Name"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="role">Role</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
-                    <SelectItem value="physician">แพทย์</SelectItem>
-                    <SelectItem value="lab_manager">หัวหน้าแลป</SelectItem>
-                    <SelectItem value="judge">กรรมการตรวจประเมิน</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  placeholder="Enter password"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="department">Department</Label>
-                <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) => setFormData({...formData, department: e.target.value})}
-                  placeholder="Department"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {!editingUser && (
-                <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-sm font-medium">Note:</p>
-                  <p className="text-sm text-muted-foreground">
-                    Please set a secure password for the new user.
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-              <Button onClick={handleSaveUser}>
-                <Save className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* System Statistics */}
@@ -475,14 +375,6 @@ export const Admin = () => {
           >
             <Settings className="h-4 w-4 mr-2" />
             System Settings
-          </Button>
-          <Button
-            variant={selectedTab === "database" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setSelectedTab("database")}
-          >
-            <Database className="h-4 w-4 mr-2" />
-            Database
           </Button>
           <Button
             variant={selectedTab === "security" ? "default" : "ghost"}
@@ -663,41 +555,6 @@ export const Admin = () => {
                   </div>
                 </div>
               ))}
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {selectedTab === "database" && (
-        <div className="space-y-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">Database Management</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 border rounded-lg">
-                <Database className="h-8 w-8 mx-auto mb-2 text-primary" />
-                <p className="font-semibold text-foreground">Total Records</p>
-                <p className="text-2xl font-bold text-primary">1,247,589</p>
-              </div>
-              <div className="text-center p-4 border rounded-lg">
-                <Activity className="h-8 w-8 mx-auto mb-2 text-success" />
-                <p className="font-semibold text-foreground">Database Size</p>
-                <p className="text-2xl font-bold text-success">2.4 GB</p>
-              </div>
-              <div className="text-center p-4 border rounded-lg">
-                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-success" />
-                <p className="font-semibold text-foreground">Last Backup</p>
-                <p className="text-2xl font-bold text-success">2 hours ago</p>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <Button>
-                <Download className="h-4 w-4 mr-2" />
-                Backup Now
-              </Button>
-              <Button variant="outline">
-                <Database className="h-4 w-4 mr-2" />
-                Optimize
-              </Button>
             </div>
           </Card>
         </div>
