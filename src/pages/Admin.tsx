@@ -515,20 +515,18 @@ export const Admin = () => {
                   <TableHead>Role</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
+                    <TableCell colSpan={4} className="text-center py-4">
                       Loading users...
                     </TableCell>
                   </TableRow>
                 ) : users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
+                    <TableCell colSpan={4} className="text-center py-4">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -544,9 +542,6 @@ export const Admin = () => {
                           <div>
                             <p className="font-medium text-foreground">{user.name}</p>
                             <p className="text-sm text-muted-foreground">{user.email}</p>
-                            <p className="text-xs text-muted-foreground font-mono">
-                              Password: {user.password ? '••••••••' : 'Not set'}
-                            </p>
                           </div>
                         </div>
                       </TableCell>
@@ -561,28 +556,6 @@ export const Admin = () => {
                           {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit User
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user.id)}>
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete User
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -595,17 +568,8 @@ export const Admin = () => {
       {selectedTab === "system" && (
         <div className="space-y-6">
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4">
               <h2 className="text-xl font-semibold text-foreground">Role Permissions Status</h2>
-              <a 
-                href="https://supabase.com/dashboard/project/pvzgswmdxkybrnznsyih/sql/new"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
-              >
-                <Database className="h-4 w-4" />
-                Edit in Supabase
-              </a>
             </div>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
