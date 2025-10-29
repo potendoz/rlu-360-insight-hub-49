@@ -131,44 +131,6 @@ const defaultPasswords = {
   'judge@rlu360.com': 'rlu360demo'
 };
 
-// Generate access logs from user data
-const generateAccessLogs = (users: User[]) => {
-  const actions = ['login', 'logout', 'view_dashboard', 'export_data', 'edit_profile', 'view_report'];
-  const devices = ['Desktop - Windows', 'Desktop - macOS', 'Mobile - iOS', 'Mobile - Android', 'Tablet - iPad'];
-  const browsers = ['Chrome 120', 'Safari 17', 'Firefox 121', 'Edge 120'];
-  const locations = ['Bangkok, Thailand', 'Chiang Mai, Thailand', 'Phuket, Thailand', 'Khon Kaen, Thailand'];
-  
-  const logs = users.flatMap(user => {
-    const userLogs = [];
-    const loginDate = user.last_login ? new Date(user.last_login) : new Date();
-    
-    // Create multiple log entries for each user
-    for (let i = 0; i < Math.floor(Math.random() * 3) + 1; i++) {
-      const randomDate = new Date(loginDate);
-      randomDate.setHours(randomDate.getHours() - Math.floor(Math.random() * 48));
-      
-      userLogs.push({
-        id: `${user.id}-${i}`,
-        user_id: user.id,
-        user_name: user.name,
-        user_email: user.email,
-        user_avatar: user.avatar_url,
-        user_role: user.role,
-        action: actions[Math.floor(Math.random() * actions.length)],
-        timestamp: randomDate.toISOString(),
-        ip_address: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-        device: devices[Math.floor(Math.random() * devices.length)],
-        browser: browsers[Math.floor(Math.random() * browsers.length)],
-        location: locations[Math.floor(Math.random() * locations.length)],
-        status: Math.random() > 0.1 ? 'success' : 'failed'
-      });
-    }
-    
-    return userLogs;
-  });
-  
-  return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-};
 
 const getActionIcon = (action: string) => {
   switch (action) {
@@ -283,15 +245,8 @@ export const Admin = () => {
   useEffect(() => {
     fetchUsers();
     fetchRolePermissions();
+    fetchAccessLogs();
   }, []);
-
-  useEffect(() => {
-    if (users.length > 0) {
-      const logs = generateAccessLogs(users);
-      setAccessLogs(logs);
-      setFilteredLogs(logs);
-    }
-  }, [users]);
 
   useEffect(() => {
     let filtered = [...accessLogs];
@@ -356,6 +311,33 @@ export const Admin = () => {
   const fetchRolePermissions = async () => {
     setPermissionsLoading(false);
     setRolePermissions([]);
+  };
+
+  const fetchAccessLogs = async () => {
+    const sheetId = localStorage.getItem('googleSheetId');
+    if (!sheetId) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const logs = await googleSheetsService.getAccessLogs();
+      // Sort by timestamp descending (newest first)
+      const sortedLogs = logs.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      setAccessLogs(sortedLogs);
+      setFilteredLogs(sortedLogs);
+    } catch (error: any) {
+      console.error('Error fetching access logs:', error);
+      toast({
+        title: "ข้อผิดพลาด",
+        description: "ไม่สามารถดึงข้อมูล Access Logs ได้",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
 
