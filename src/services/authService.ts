@@ -286,7 +286,7 @@ class AuthService {
     return '/dashboard';
   }
 
-  private logAuthEvent(userId: string, role: string, action: string, status: string) {
+  private async logAuthEvent(userId: string, role: string, action: string, status: string) {
     const event = {
       user_id: userId,
       role,
@@ -298,8 +298,24 @@ class AuthService {
     
     console.log('Auth Event:', event);
     
-    // In production, send to analytics service
-    // analytics.track('auth_event', event);
+    // Log to Supabase access_logs table
+    try {
+      const user = this.getCurrentUser();
+      await supabase
+        .from('access_logs')
+        .insert({
+          user_id: userId,
+          user_email: user?.email || '',
+          user_name: user?.name || '',
+          user_role: role,
+          action: action,
+          route: window.location.pathname,
+          user_agent: navigator.userAgent,
+          timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+      console.error('Error logging to Supabase:', error);
+    }
   }
 }
 

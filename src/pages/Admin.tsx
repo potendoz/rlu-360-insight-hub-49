@@ -29,6 +29,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { googleSheetsService } from "@/services/googleSheetsService";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -314,25 +315,38 @@ export const Admin = () => {
   };
 
   const fetchAccessLogs = async () => {
-    const sheetId = localStorage.getItem('googleSheetId');
-    if (!sheetId) {
-      return;
-    }
-
     setLoading(true);
     try {
-      const logs = await googleSheetsService.getAccessLogs();
-      // Sort by timestamp descending (newest first)
-      const sortedLogs = logs.sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
-      setAccessLogs(sortedLogs);
-      setFilteredLogs(sortedLogs);
+      // Fetch from Supabase access_logs table
+      const { data, error } = await supabase
+        .from('access_logs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(1000);
+
+      if (error) {
+        throw error;
+      }
+
+      const formattedLogs = (data || []).map((log: any) => ({
+        user_name: log.user_name || 'Unknown',
+        user_email: log.user_email || '',
+        user_role: log.user_role || '',
+        action: log.action || '',
+        route: log.route || '',
+        timestamp: log.timestamp,
+        user_agent: log.user_agent || '',
+        ip_address: log.ip_address || '',
+        status: 'success' // Default status
+      }));
+
+      setAccessLogs(formattedLogs);
+      setFilteredLogs(formattedLogs);
     } catch (error: any) {
       console.error('Error fetching access logs:', error);
       toast({
         title: "ข้อผิดพลาด",
-        description: "ไม่สามารถดึงข้อมูล Access Logs ได้",
+        description: "ไม่สามารถดึงข้อมูล Access Logs จาก Supabase ได้: " + error.message,
         variant: "destructive",
       });
     } finally {
