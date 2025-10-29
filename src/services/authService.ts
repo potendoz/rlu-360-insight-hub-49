@@ -47,6 +47,13 @@ class AuthService {
           isAuthenticated: true,
           isLoading: false
         };
+        
+        // โหลด Google Sheet ID ของ user และตั้งค่าให้ googleSheetsService
+        const userSheetId = sessionStorage.getItem('user_google_sheet_id');
+        if (userSheetId) {
+          googleSheetsService.setCredentials(userSheetId);
+          console.log(`Restored user's Google Sheet ID: ${userSheetId}`);
+        }
       } else {
         this.authState.isLoading = false;
       }
@@ -164,9 +171,14 @@ class AuthService {
         avatar: userData.avatar_url
       };
 
-      // บันทึก Google Sheet ID ไว้ใน sessionStorage สำหรับใช้งานภายหลัง
+      // บันทึก Google Sheet ID ไว้ใน sessionStorage และตั้งค่าให้ googleSheetsService
       if (userData.google_sheet_id) {
         sessionStorage.setItem('user_google_sheet_id', userData.google_sheet_id);
+        // ตั้งค่า Sheet ID ของ user ให้กับ googleSheetsService
+        googleSheetsService.setCredentials(userData.google_sheet_id);
+        console.log(`Set user's Google Sheet ID: ${userData.google_sheet_id}`);
+      } else {
+        console.warn(`User ${email} has no Google Sheet ID`);
       }
 
       this.setUser(user);
@@ -194,9 +206,14 @@ class AuthService {
       avatar: userData.avatar_url
     };
 
-    // บันทึก Google Sheet ID ไว้ใน sessionStorage สำหรับใช้งานภายหลัง
+    // บันทึก Google Sheet ID ไว้ใน sessionStorage และตั้งค่าให้ googleSheetsService
     if (userData.google_sheet_id) {
       sessionStorage.setItem('user_google_sheet_id', userData.google_sheet_id);
+      // ตั้งค่า Sheet ID ของ user ให้กับ googleSheetsService
+      googleSheetsService.setCredentials(userData.google_sheet_id);
+      console.log(`Set user's Google Sheet ID: ${userData.google_sheet_id}`);
+    } else {
+      console.warn(`User ${email} has no Google Sheet ID`);
     }
 
     this.setUser(user);
@@ -225,6 +242,10 @@ class AuthService {
     
     sessionStorage.removeItem('rlu360_auth');
     sessionStorage.removeItem('user_google_sheet_id');
+    
+    // ลบ Sheet ID ออกจาก googleSheetsService และ localStorage
+    localStorage.removeItem('googleSheetId');
+    
     this.logAuthEvent(
       this.authState.user?.id || 'unknown',
       this.authState.user?.role || 'unknown',

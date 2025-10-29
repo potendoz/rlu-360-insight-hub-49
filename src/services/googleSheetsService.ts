@@ -35,9 +35,35 @@ export class GoogleSheetsService {
     return !!this.sheetId; // เช็คแค่ sheetId เท่านั้น
   }
 
+  private validateUserSheetAccess(): boolean {
+    // ตรวจสอบว่า Sheet ID ที่ใช้ตรงกับ Sheet ID ของ user ที่ล็อกอินหรือไม่
+    const userSheetId = sessionStorage.getItem('user_google_sheet_id');
+    
+    // ถ้าไม่มี user sheet ID แสดงว่ายังไม่ได้ล็อกอิน หรือ user ไม่มี sheet
+    if (!userSheetId) {
+      console.warn('No user sheet ID found in session');
+      return false;
+    }
+    
+    // ตรวจสอบว่า Sheet ID ปัจจุบันตรงกับของ user หรือไม่
+    if (this.sheetId !== userSheetId) {
+      console.error(`Sheet ID mismatch! Current: ${this.sheetId}, User's: ${userSheetId}`);
+      return false;
+    }
+    
+    return true;
+  }
+
   private async fetchSheetData(sheetName: string): Promise<string[][]> {
     if (!this.sheetId) {
       throw new Error('Google Sheet ID not configured');
+    }
+
+    // ตรวจสอบว่า Sheet ID ตรงกับของ user ที่ล็อกอินหรือไม่
+    // ยกเว้นกรณีดึงข้อมูล users (สำหรับ authentication)
+    if (sheetName !== 'users' && !this.validateUserSheetAccess()) {
+      console.error(`Access denied: Sheet ID does not match user's sheet`);
+      throw new Error('Access denied: You can only access your own data');
     }
 
     // ใช้ CSV export URL สำหรับ public sheets ที่ไม่ต้องการ API key
