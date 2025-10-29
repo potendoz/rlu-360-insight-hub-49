@@ -13,7 +13,7 @@ import {
   CheckCircle,
   Star
 } from "lucide-react";
-import heroImage from "@/assets/hero-healthcare.jpg";
+import heroImage from "@/assets/hero-rlu-platform.jpg";
 import rluLogo from "@/assets/rlu-360-logo.png";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -122,10 +122,6 @@ const Index = () => {
                     Sign In
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-                  <Award className="w-5 h-5 mr-2" />
-                  Award Documentation
-                </Button>
               </div>
             </div>
           </div>
@@ -241,17 +237,13 @@ const Index = () => {
             <p className="text-lg mb-8 text-primary-foreground/90">
               Join the healthcare transformation with our proven, scalable platform. Suitable for hospitals of all sizes.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex justify-center">
               <Link to="/login">
                 <Button size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
                   <Activity className="w-5 h-5 mr-2" />
                   Get Started Now
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-                <TrendingUp className="w-5 h-5 mr-2" />
-                Schedule Consultation
-              </Button>
             </div>
           </div>
         </div>
