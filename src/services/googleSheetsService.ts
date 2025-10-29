@@ -337,48 +337,6 @@ export class GoogleSheetsService {
     }
   }
 
-  async getAccessLogs() {
-    try {
-      console.log('Fetching access logs from Google Sheet...');
-      const data = await this.fetchSheetData('access_logs');
-      console.log('Raw access logs data:', data);
-      
-      if (data.length <= 1) {
-        console.warn('No access logs data found or only headers present');
-        return [];
-      }
-      
-      const [headers, ...rows] = data;
-      console.log('Access logs headers:', headers);
-      console.log('Access logs data rows count:', rows.length);
-      
-      // Map ตาม column structure: id, user_id, user_name, user_email, user_role, user_avatar, action, timestamp, ip_address, device, browser, location, status
-      const logs = rows
-        .filter(row => row[0]) // กรอง row ว่าง
-        .map(row => ({
-          id: (row[0] || '').trim(),
-          user_id: (row[1] || '').trim(),
-          user_name: (row[2] || '').trim(),
-          user_email: (row[3] || '').trim(),
-          user_role: (row[4] || '').trim(),
-          user_avatar: (row[5] || '').trim(),
-          action: (row[6] || '').trim(),
-          timestamp: (row[7] || new Date().toISOString()).trim(),
-          ip_address: (row[8] || '').trim(),
-          device: (row[9] || '').trim(),
-          browser: (row[10] || '').trim(),
-          location: (row[11] || '').trim(),
-          status: (row[12] || 'success').trim()
-        }));
-      
-      console.log('Total access logs mapped:', logs.length);
-      return logs;
-    } catch (error) {
-      console.error('Error fetching access logs:', error);
-      return [];
-    }
-  }
-
   // Methods to add data to sheets would require Google Sheets API write permissions
   // For now, we'll focus on reading data
   async addDataToSheet(sheetName: string, data: any[]) {
