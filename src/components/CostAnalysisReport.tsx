@@ -7,10 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PDFExport } from "@/components/PDFExport";
 import { DollarSign, TrendingUp, TrendingDown, CalendarDays, FileText, Target, BarChart3 } from "lucide-react";
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { anonymizeDoctorName } from "@/utils/pdpaUtils";
+import { googleSheetsService } from "@/services/googleSheetsService";
 
 interface DoctorCostData {
   id: string;
@@ -66,35 +66,37 @@ export const CostAnalysisReport = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch doctor monthly data with doctor details
-      const { data: monthlyData, error: monthlyError } = await supabase
-        .from('doctor_monthly_data')
-        .select(`
-          *,
-          doctors(name, specialty, department)
-        `)
-        .eq('month', selectedMonth)
-        .eq('year', selectedYear);
+      // Fetch doctors and monthly data from Google Sheets
+      const [doctors, monthlyData] = await Promise.all([
+        googleSheetsService.getDoctors(),
+        googleSheetsService.getMonthlyData()
+      ]);
 
-      if (monthlyError) throw monthlyError;
+      // Filter by selected month and year
+      const filteredMonthlyData = monthlyData.filter(
+        item => item.month === selectedMonth && item.year === selectedYear
+      );
 
       // Transform data for cost analysis
-      const transformedData: DoctorCostData[] = monthlyData?.map(item => ({
-        id: item.doctor_id,
-        name: item.doctors?.name || 'Unknown',
-        specialty: item.doctors?.specialty || 'Unknown',
-        department: item.doctors?.department || 'Unknown',
-        total_patient: item.total_patient || 0,
-        total_lab: item.total_lab || 0,
-        lp_ratio: item.lp_ratio || 0,
-        estimated_cost: item.estimated_cost || 0,
-        cp_ratio: item.cp_ratio || 0,
-        rlu_score: item.rlu_score || 0,
-        cpg_mismatch_percentage: item.cpg_mismatch_percentage || 0,
-        duplicate_order_rate: item.duplicate_order_rate || 0,
-        month: item.month,
-        year: item.year
-      })) || [];
+      const transformedData: DoctorCostData[] = filteredMonthlyData.map(item => {
+        const doctor = doctors.find(d => d.id === item.doctor_id);
+        return {
+          id: item.doctor_id,
+          name: doctor?.name || 'Unknown',
+          specialty: doctor?.specialty || 'Unknown',
+          department: doctor?.department || 'Unknown',
+          total_patient: item.total_patient || 0,
+          total_lab: item.total_lab || 0,
+          lp_ratio: item.lp_ratio || 0,
+          estimated_cost: item.estimated_cost || 0,
+          cp_ratio: item.cp_ratio || 0,
+          rlu_score: item.rlu_score || 0,
+          cpg_mismatch_percentage: item.cpg_mismatch_percentage || 0,
+          duplicate_order_rate: item.duplicate_order_rate || 0,
+          month: item.month,
+          year: item.year
+        };
+      });
 
       setDoctorsData(transformedData);
 
@@ -117,14 +119,10 @@ export const CostAnalysisReport = () => {
         setOverviewData(overview);
       }
 
-      // Fetch monthly cost trend for the year
-      const { data: yearlyData, error: yearlyError } = await supabase
-        .from('doctor_monthly_data')
-        .select('month, estimated_cost, cp_ratio, total_patient')
-        .eq('year', selectedYear)
-        .order('month');
-
-      if (!yearlyError && yearlyData) {
+      // Calculate monthly cost trend for the year
+      const yearlyData = monthlyData.filter(item => item.year === selectedYear);
+      
+      if (yearlyData.length > 0) {
         const monthOrder = months;
         const costTrend = monthOrder.map(month => {
           const monthData = yearlyData.filter(item => item.month === month);

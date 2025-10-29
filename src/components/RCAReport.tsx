@@ -4,10 +4,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
 import { PDFExport } from "@/components/PDFExport";
 import { useAuth } from "@/hooks/useAuth";
 import { anonymizeDoctorName } from "@/utils/pdpaUtils";
+import { googleSheetsService } from "@/services/googleSheetsService";
 
 interface DoctorData {
   id: string;
@@ -86,13 +86,8 @@ export const RCAReport = () => {
 
   const fetchDoctors = async () => {
     try {
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('id, name')
-        .order('name');
-
-      if (error) throw error;
-      setDoctors(data || []);
+      const data = await googleSheetsService.getDoctors();
+      setDoctors(data.map(d => ({ id: d.id, name: d.name })));
     } catch (error) {
       console.error('Error fetching doctors:', error);
     }
@@ -101,37 +96,40 @@ export const RCAReport = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('doctor_monthly_data')
-        .select(`
-          *,
-          doctors!inner(id, name, specialty, department)
-        `)
-        .eq('month', selectedMonth)
-        .eq('year', parseInt(selectedYear));
+      // Fetch doctors and monthly data from Google Sheets
+      const [doctors, monthlyData] = await Promise.all([
+        googleSheetsService.getDoctors(),
+        googleSheetsService.getMonthlyData()
+      ]);
 
+      // Filter by selected month and year
+      let filteredData = monthlyData.filter(
+        item => item.month === selectedMonth && item.year === parseInt(selectedYear)
+      );
+
+      // Filter by selected doctor if not "all"
       if (selectedDoctor !== "all") {
-        query = query.eq('doctor_id', selectedDoctor);
+        filteredData = filteredData.filter(item => item.doctor_id === selectedDoctor);
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      const processedData = (data || []).map((item: any) => ({
-        id: item.doctor_id,
-        name: item.doctors.name,
-        specialty: item.doctors.specialty,
-        department: item.doctors.department,
-        rlu_score: item.rlu_score || 0,
-        lp_ratio: item.lp_ratio || 0,
-        cpg_mismatch_percentage: item.cpg_mismatch_percentage || 0,
-        duplicate_order_rate: item.duplicate_order_rate || 0,
-        estimated_cost: item.estimated_cost || 0,
-        cost_savings: item.cost_savings || 0,
-        total_tests: item.total_tests || 0,
-        total_patients: item.total_patients || 0,
-      }));
+      // Process data with doctor details
+      const processedData = filteredData.map(item => {
+        const doctor = doctors.find(d => d.id === item.doctor_id);
+        return {
+          id: item.doctor_id,
+          name: doctor?.name || 'Unknown',
+          specialty: doctor?.specialty || 'Unknown',
+          department: doctor?.department || 'Unknown',
+          rlu_score: item.rlu_score || 0,
+          lp_ratio: item.lp_ratio || 0,
+          cpg_mismatch_percentage: item.cpg_mismatch_percentage || 0,
+          duplicate_order_rate: item.duplicate_order_rate || 0,
+          estimated_cost: item.estimated_cost || 0,
+          cost_savings: 0, // Calculate if needed
+          total_tests: item.total_lab || 0,
+          total_patients: item.total_patient || 0,
+        };
+      });
 
       setDoctorsData(processedData);
       generateRCAAnalyses(processedData);
