@@ -26,10 +26,23 @@ const Index = () => {
   }
 
   const achievements = [
-    { title: "Province Healthcare RLU Award", year: "2025", status: "Submitted" },
-    { title: "30-Bed Hospital Optimization", year: "2025", status: "Completed" },
-    { title: "฿175k Cost Reduction", year: "2025", status: "Achieved" },
-    { title: "11 Physicians Enrolled", year: "2025", status: "Active" }
+    { title: "Cost Reduction", description: "Up to ฿175,000 annually", icon: TrendingUp },
+    { title: "Physician Engagement", description: "Real-time performance tracking", icon: Users },
+    { title: "Quality Improvement", description: "Evidence-based decision making", icon: Target },
+    { title: "Award Recognition", description: "Province-level validated", icon: Award }
+  ];
+
+  const successStories = [
+    { 
+      hospital: "30-Bed Community Hospital",
+      results: ["฿175k annual cost reduction", "11 physicians enrolled", "Province RLU Award 2025"],
+      type: "Small Hospital"
+    },
+    { 
+      hospital: "Your Hospital",
+      results: ["Scalable implementation", "Customizable KPIs", "AI-powered insights"],
+      type: "Any Size"
+    }
   ];
 
   const keyFeatures = [
@@ -94,13 +107,13 @@ const Index = () => {
             <div className="animate-fade-in">
               <Badge variant="secondary" className="mb-6 bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30">
                 <Star className="w-3 h-3 mr-1" />
-                Province Healthcare RLU Award 2025
+                Province Award Validated Solution
               </Badge>
               <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
                 RLU 360 Transformation Model
               </h1>
               <p className="text-xl md:text-2xl mb-8 text-primary-foreground/90">
-                A System Innovation for Rational Laboratory Use in Noenmaprang Hospital
+                Scalable AI-Powered Platform for Rational Laboratory Use in Any Hospital
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/login">
@@ -119,31 +132,66 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Achievements Section */}
+      {/* Benefits Section */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground mb-4 animate-fade-in">
-              National-Level Achievements
+              Proven Impact for Healthcare Excellence
             </h2>
             <p className="text-lg text-muted-foreground animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              Transforming healthcare delivery through innovative laboratory optimization
+              Scalable solution delivering measurable results for hospitals of all sizes
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {achievements.map((achievement, index) => (
+            {achievements.map((achievement, index) => {
+              const Icon = achievement.icon;
+              return (
+                <Card 
+                  key={achievement.title} 
+                  className="p-6 text-center shadow-card hover:shadow-elegant transition-smooth animate-fade-in"
+                  style={{ animationDelay: `${(index + 2) * 0.1}s` }}
+                >
+                  <Icon className="w-8 h-8 text-primary mx-auto mb-3" />
+                  <h3 className="font-semibold text-foreground mb-2">{achievement.title}</h3>
+                  <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Success Stories Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              Proven Success Stories
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Real results from real implementations
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {successStories.map((story, index) => (
               <Card 
-                key={achievement.title} 
-                className="p-6 text-center shadow-card hover:shadow-elegant transition-smooth animate-fade-in"
-                style={{ animationDelay: `${(index + 2) * 0.1}s` }}
+                key={story.hospital}
+                className="p-8 shadow-card hover:shadow-elegant transition-smooth animate-fade-in"
+                style={{ animationDelay: `${index * 0.2}s` }}
               >
-                <CheckCircle className="w-8 h-8 text-success mx-auto mb-3" />
-                <h3 className="font-semibold text-foreground mb-2">{achievement.title}</h3>
-                <p className="text-sm text-muted-foreground mb-2">{achievement.year}</p>
-                <Badge variant={achievement.status === "Active" ? "default" : "secondary"}>
-                  {achievement.status}
-                </Badge>
+                <Badge className="mb-4">{story.type}</Badge>
+                <h3 className="text-xl font-bold text-foreground mb-4">{story.hospital}</h3>
+                <div className="space-y-2">
+                  {story.results.map((result, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
+                      <p className="text-muted-foreground">{result}</p>
+                    </div>
+                  ))}
+                </div>
               </Card>
             ))}
           </div>
@@ -188,21 +236,21 @@ const Index = () => {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-2xl mx-auto text-primary-foreground">
             <h2 className="text-3xl font-bold mb-4">
-              Ready to Transform Your Laboratory Operations?
+              Ready to Implement RLU 360 in Your Hospital?
             </h2>
             <p className="text-lg mb-8 text-primary-foreground/90">
-              Experience the complete RLU 360 platform with real-time analytics, AI insights, and comprehensive reporting.
+              Join the healthcare transformation with our proven, scalable platform. Suitable for hospitals of all sizes.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/login">
                 <Button size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
                   <Activity className="w-5 h-5 mr-2" />
-                  Get Started
+                  Get Started Now
                 </Button>
               </Link>
               <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
                 <TrendingUp className="w-5 h-5 mr-2" />
-                View Demo
+                Schedule Consultation
               </Button>
             </div>
           </div>
@@ -217,7 +265,7 @@ const Index = () => {
             <span className="text-lg font-bold text-primary">RLU 360 Transformation Model</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            Rational Laboratory Use Platform • Province Healthcare RLU Award 2025
+            Scalable Rational Laboratory Use Platform • Province Award Validated • Healthcare Excellence
           </p>
         </div>
       </footer>
