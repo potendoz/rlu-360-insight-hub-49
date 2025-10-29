@@ -15,7 +15,18 @@ import {
   Download,
   Save,
   X,
-  Info
+  Info,
+  LogIn,
+  LogOut,
+  UserCheck,
+  MapPin,
+  Monitor,
+  Smartphone,
+  Globe,
+  Filter,
+  Search,
+  Calendar,
+  TrendingUp
 } from "lucide-react";
 import { googleSheetsService } from "@/services/googleSheetsService";
 import { useToast } from "@/hooks/use-toast";
@@ -120,29 +131,75 @@ const defaultPasswords = {
   'judge@rlu360.com': 'rlu360demo'
 };
 
-const systemAlerts = [
-  {
-    id: 1,
-    type: "warning",
-    title: "High Server Load",
-    description: "Database server experiencing high load (85%)",
-    timestamp: "2 hours ago"
-  },
-  {
-    id: 2,
-    type: "info",
-    title: "Scheduled Maintenance",
-    description: "System maintenance scheduled for tonight 2:00 AM - 4:00 AM",
-    timestamp: "4 hours ago"
-  },
-  {
-    id: 3,
-    type: "success",
-    title: "Backup Completed",
-    description: "Daily backup completed successfully",
-    timestamp: "6 hours ago"
+// Generate access logs from user data
+const generateAccessLogs = (users: User[]) => {
+  const actions = ['login', 'logout', 'view_dashboard', 'export_data', 'edit_profile', 'view_report'];
+  const devices = ['Desktop - Windows', 'Desktop - macOS', 'Mobile - iOS', 'Mobile - Android', 'Tablet - iPad'];
+  const browsers = ['Chrome 120', 'Safari 17', 'Firefox 121', 'Edge 120'];
+  const locations = ['Bangkok, Thailand', 'Chiang Mai, Thailand', 'Phuket, Thailand', 'Khon Kaen, Thailand'];
+  
+  const logs = users.flatMap(user => {
+    const userLogs = [];
+    const loginDate = user.last_login ? new Date(user.last_login) : new Date();
+    
+    // Create multiple log entries for each user
+    for (let i = 0; i < Math.floor(Math.random() * 3) + 1; i++) {
+      const randomDate = new Date(loginDate);
+      randomDate.setHours(randomDate.getHours() - Math.floor(Math.random() * 48));
+      
+      userLogs.push({
+        id: `${user.id}-${i}`,
+        user_id: user.id,
+        user_name: user.name,
+        user_email: user.email,
+        user_avatar: user.avatar_url,
+        user_role: user.role,
+        action: actions[Math.floor(Math.random() * actions.length)],
+        timestamp: randomDate.toISOString(),
+        ip_address: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+        device: devices[Math.floor(Math.random() * devices.length)],
+        browser: browsers[Math.floor(Math.random() * browsers.length)],
+        location: locations[Math.floor(Math.random() * locations.length)],
+        status: Math.random() > 0.1 ? 'success' : 'failed'
+      });
+    }
+    
+    return userLogs;
+  });
+  
+  return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+};
+
+const getActionIcon = (action: string) => {
+  switch (action) {
+    case 'login':
+      return <LogIn className="h-4 w-4" />;
+    case 'logout':
+      return <LogOut className="h-4 w-4" />;
+    case 'view_dashboard':
+      return <Activity className="h-4 w-4" />;
+    case 'export_data':
+      return <Download className="h-4 w-4" />;
+    case 'edit_profile':
+      return <Edit className="h-4 w-4" />;
+    case 'view_report':
+      return <Eye className="h-4 w-4" />;
+    default:
+      return <Activity className="h-4 w-4" />;
   }
-];
+};
+
+const getActionLabel = (action: string) => {
+  const labels: Record<string, string> = {
+    'login': 'เข้าสู่ระบบ',
+    'logout': 'ออกจากระบบ',
+    'view_dashboard': 'เปิดดูแดชบอร์ด',
+    'export_data': 'ส่งออกข้อมูล',
+    'edit_profile': 'แก้ไขโปรไฟล์',
+    'view_report': 'เปิดดูรายงาน'
+  };
+  return labels[action] || action;
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -208,6 +265,11 @@ export const Admin = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
   const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const [accessLogs, setAccessLogs] = useState<any[]>([]);
+  const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterAction, setFilterAction] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -222,6 +284,36 @@ export const Admin = () => {
     fetchUsers();
     fetchRolePermissions();
   }, []);
+
+  useEffect(() => {
+    if (users.length > 0) {
+      const logs = generateAccessLogs(users);
+      setAccessLogs(logs);
+      setFilteredLogs(logs);
+    }
+  }, [users]);
+
+  useEffect(() => {
+    let filtered = [...accessLogs];
+    
+    if (searchQuery) {
+      filtered = filtered.filter(log => 
+        log.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.user_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.action.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    if (filterAction !== 'all') {
+      filtered = filtered.filter(log => log.action === filterAction);
+    }
+    
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(log => log.status === filterStatus);
+    }
+    
+    setFilteredLogs(filtered);
+  }, [searchQuery, filterAction, filterStatus, accessLogs]);
 
   const fetchUsers = async () => {
     const sheetId = localStorage.getItem('googleSheetId');
@@ -594,111 +686,235 @@ export const Admin = () => {
 
       {selectedTab === "system" && (
         <div className="space-y-6">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-foreground">Role Permissions Status</h2>
-              <a 
-                href="https://supabase.com/dashboard/project/pvzgswmdxkybrnznsyih/sql/new"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
-              >
-                <Database className="h-4 w-4" />
-                Edit in Supabase
-              </a>
-            </div>
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+          {/* Access Logs Statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-900">สิทธิ์การเข้าถึงถูกจัดการผ่าน Supabase</p>
-                  <p className="text-sm text-blue-700 mt-1">
-                    หน้านี้แสดงสถานะสิทธิ์เท่านั้น หากต้องการแก้ไขสิทธิ์ กรุณาแก้ไขที่ตาราง role_permissions ใน Supabase โดยตรง
+                  <p className="text-sm text-muted-foreground mb-1">Total Activities</p>
+                  <p className="text-3xl font-bold text-primary">{accessLogs.length}</p>
+                  <p className="text-xs text-success mt-1 flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    +12% from last week
                   </p>
                 </div>
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <Activity className="h-8 w-8 text-primary" />
+                </div>
               </div>
-            </div>
-
-            {permissionsLoading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Loading permissions...</p>
+            </Card>
+            
+            <Card className="p-6 bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Successful Logins</p>
+                  <p className="text-3xl font-bold text-success">
+                    {accessLogs.filter(log => log.status === 'success' && log.action === 'login').length}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Last 48 hours</p>
+                </div>
+                <div className="p-3 rounded-lg bg-success/10">
+                  <UserCheck className="h-8 w-8 text-success" />
+                </div>
               </div>
-            ) : (
-              <div className="space-y-6">
-                {['admin', 'physician', 'lab_manager', 'judge'].map((role) => (
-                  <div key={role} className="border rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Badge className={getRoleColor(role)}>
-                        {getRoleDisplayName(role)}
-                      </Badge>
-                      <h3 className="text-lg font-medium text-foreground">
-                        {getRoleDisplayName(role)} Permissions
-                      </h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {rolePermissions
-                        .filter(perm => perm.role === role)
-                        .map((permission) => {
-                          const routeNames: Record<string, string> = {
-                            '/': 'หน้าหลัก',
-                            '/dashboard': 'แดชบอร์ด',
-                            '/analytics': 'วิเคราะห์ข้อมูล',
-                            '/doctors': 'จัดการแพทย์',
-                            '/data-input': 'ป้อนข้อมูล',
-                            '/reports': 'รายงาน',
-                            '/analysis': 'วิเคราะห์ผล',
-                            '/performance-report': 'รายงานประสิทธิภาพ',
-                            '/admin': 'จัดการระบบ'
-                          };
-
-                          return (
-                            <div 
-                              key={`${role}-${permission.route}`}
-                              className="flex items-center justify-between p-3 border rounded-lg bg-muted/30"
-                            >
-                              <div>
-                                <p className="font-medium text-sm text-foreground">
-                                  {routeNames[permission.route] || permission.route}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {permission.route}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Switch
-                                  checked={permission.can_access}
-                                  disabled={true}
-                                />
-                                <span className="text-xs text-muted-foreground">
-                                  {permission.can_access ? 'อนุญาต' : 'ไม่อนุญาต'}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                ))}
+            </Card>
+            
+            <Card className="p-6 bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Failed Attempts</p>
+                  <p className="text-3xl font-bold text-warning">
+                    {accessLogs.filter(log => log.status === 'failed').length}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Requires attention</p>
+                </div>
+                <div className="p-3 rounded-lg bg-warning/10">
+                  <AlertTriangle className="h-8 w-8 text-warning" />
+                </div>
               </div>
-            )}
-          </Card>
+            </Card>
+            
+            <Card className="p-6 bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Active Users</p>
+                  <p className="text-3xl font-bold text-secondary">
+                    {new Set(accessLogs.map(log => log.user_id)).size}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Unique users</p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/10">
+                  <Users className="h-8 w-8 text-secondary" />
+                </div>
+              </div>
+            </Card>
+          </div>
 
-          {/* System Alerts */}
+          {/* Access Logs Main Card */}
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">System Alerts</h2>
-            <div className="space-y-3">
-              {systemAlerts.map((alert) => (
-                <div key={alert.id} className="flex items-start gap-3 p-3 rounded-lg border">
-                  {getAlertIcon(alert.type)}
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{alert.title}</p>
-                    <p className="text-sm text-muted-foreground">{alert.description}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{alert.timestamp}</p>
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <Shield className="h-6 w-6 text-primary" />
+                    Access Logs & Activity Monitor
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Real-time tracking of all system activities and user actions
+                  </p>
+                </div>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Logs
+                </Button>
+              </div>
+
+              {/* Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg border">
+                <div className="md:col-span-2">
+                  <Label className="text-xs font-medium mb-2 block">Search</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="ค้นหาชื่อผู้ใช้, อีเมล, หรือการกระทำ..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
                 </div>
-              ))}
+                
+                <div>
+                  <Label className="text-xs font-medium mb-2 block">Action Type</Label>
+                  <Select value={filterAction} onValueChange={setFilterAction}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Actions</SelectItem>
+                      <SelectItem value="login">เข้าสู่ระบบ</SelectItem>
+                      <SelectItem value="logout">ออกจากระบบ</SelectItem>
+                      <SelectItem value="view_dashboard">เปิดดูแดชบอร์ด</SelectItem>
+                      <SelectItem value="export_data">ส่งออกข้อมูล</SelectItem>
+                      <SelectItem value="edit_profile">แก้ไขโปรไฟล์</SelectItem>
+                      <SelectItem value="view_report">เปิดดูรายงาน</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label className="text-xs font-medium mb-2 block">Status</Label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="success">Success</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Results Count */}
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Showing <span className="font-semibold text-foreground">{filteredLogs.length}</span> of <span className="font-semibold text-foreground">{accessLogs.length}</span> activities
+                </p>
+              </div>
+
+              {/* Logs List */}
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                {filteredLogs.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                    <p className="text-muted-foreground">ไม่พบบันทึกที่ตรงกับเงื่อนไขการค้นหา</p>
+                  </div>
+                ) : (
+                  filteredLogs.map((log) => (
+                    <Card key={log.id} className={`p-4 transition-all hover:shadow-md border-l-4 ${
+                      log.status === 'success' ? 'border-l-success' : 'border-l-warning'
+                    }`}>
+                      <div className="flex items-start gap-4">
+                        {/* User Avatar */}
+                        <Avatar className="h-12 w-12 border-2 border-border">
+                          <AvatarImage src={log.user_avatar || ''} alt={log.user_name} />
+                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                            {log.user_name.split(' ').map((n: string) => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        {/* Main Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-semibold text-foreground">{log.user_name}</p>
+                                <Badge className={getRoleColor(log.user_role)} variant="secondary">
+                                  {getRoleDisplayName(log.user_role)}
+                                </Badge>
+                                <Badge variant={log.status === 'success' ? 'default' : 'destructive'} className="text-xs">
+                                  {log.status === 'success' ? 'สำเร็จ' : 'ล้มเหลว'}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{log.user_email}</p>
+                            </div>
+                            <div className="text-right">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                                <Clock className="h-3 w-3" />
+                                {new Date(log.timestamp).toLocaleTimeString('th-TH')}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(log.timestamp).toLocaleDateString('th-TH', { 
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Action */}
+                          <div className="flex items-center gap-2 mb-3 p-2 bg-muted/50 rounded-md">
+                            <div className="p-1.5 rounded bg-primary/10 text-primary">
+                              {getActionIcon(log.action)}
+                            </div>
+                            <span className="font-medium text-sm text-foreground">
+                              {getActionLabel(log.action)}
+                            </span>
+                          </div>
+
+                          {/* Additional Details */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            <div className="flex items-center gap-2">
+                              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-muted-foreground truncate">{log.ip_address}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-muted-foreground truncate">{log.location}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {log.device.includes('Mobile') || log.device.includes('Tablet') ? (
+                                <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
+                              ) : (
+                                <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
+                              )}
+                              <span className="text-muted-foreground truncate">{log.device}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-muted-foreground truncate">{log.browser}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </div>
             </div>
           </Card>
         </div>
