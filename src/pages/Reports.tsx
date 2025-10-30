@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Calendar, Filter, FileText, BarChart3, PieChart, TrendingUp, DollarSign, Search } from "lucide-react";
+import { Download, Calendar, Filter, FileText, BarChart3, PieChart, TrendingUp, DollarSign, Search, Calendar as CalendarIcon, BarChart2, AlertTriangle, Target } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,10 @@ import { MonthlySummaryReport } from "@/components/MonthlySummaryReport";
 import { IndividualPerformanceReport } from "@/components/IndividualPerformanceReport";
 import { CostAnalysisReport } from "@/components/CostAnalysisReport";
 import { RCAReport } from "@/components/RCAReport";
+import { AnnualReport } from "@/components/AnnualReport";
+import { CostTrendVarianceReport } from "@/components/CostTrendVarianceReport";
+import { MismatchAnalysisReport } from "@/components/MismatchAnalysisReport";
+import { FinancialImpactAnalysisReport } from "@/components/FinancialImpactAnalysisReport";
 
 const reportsData = [
   {
@@ -116,6 +120,30 @@ const quickReports = [
     description: "Root cause analysis using 6M framework and 5 Whys",
     icon: Search,
     action: "Generate"
+  },
+  {
+    title: "Annual Report",
+    description: "Comprehensive yearly RLU performance analysis",
+    icon: CalendarIcon,
+    action: "Generate"
+  },
+  {
+    title: "Cost Trend & Variance",
+    description: "Detailed cost trend analysis with variance tracking",
+    icon: BarChart2,
+    action: "Generate"
+  },
+  {
+    title: "Mismatch Analysis",
+    description: "CPG compliance and duplicate order analysis",
+    icon: AlertTriangle,
+    action: "Generate"
+  },
+  {
+    title: "Financial Impact Analysis",
+    description: "Financial impact and savings opportunities",
+    icon: Target,
+    action: "Generate"
   }
 ];
 
@@ -159,6 +187,10 @@ export const Reports = () => {
   const [showIndividualReport, setShowIndividualReport] = useState(false);
   const [showCostAnalysis, setShowCostAnalysis] = useState(false);
   const [showRCAReport, setShowRCAReport] = useState(false);
+  const [showAnnualReport, setShowAnnualReport] = useState(false);
+  const [showCostTrendVariance, setShowCostTrendVariance] = useState(false);
+  const [showMismatchAnalysis, setShowMismatchAnalysis] = useState(false);
+  const [showFinancialImpact, setShowFinancialImpact] = useState(false);
 
   // Check if connected
   const isConnected = !!localStorage.getItem('googleSheetId');
@@ -286,6 +318,86 @@ export const Reports = () => {
     );
   }
 
+  if (showAnnualReport) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Annual Report</h1>
+            <p className="text-muted-foreground">Comprehensive yearly RLU performance analysis</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowAnnualReport(false)}
+          >
+            Back to Reports
+          </Button>
+        </div>
+        <AnnualReport />
+      </div>
+    );
+  }
+
+  if (showCostTrendVariance) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Cost Trend & Variance Report</h1>
+            <p className="text-muted-foreground">Detailed cost analysis with variance tracking</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowCostTrendVariance(false)}
+          >
+            Back to Reports
+          </Button>
+        </div>
+        <CostTrendVarianceReport />
+      </div>
+    );
+  }
+
+  if (showMismatchAnalysis) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Mismatch Analysis Report</h1>
+            <p className="text-muted-foreground">CPG compliance and duplicate order analysis</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowMismatchAnalysis(false)}
+          >
+            Back to Reports
+          </Button>
+        </div>
+        <MismatchAnalysisReport />
+      </div>
+    );
+  }
+
+  if (showFinancialImpact) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Financial Impact Analysis Report</h1>
+            <p className="text-muted-foreground">Financial impact and savings opportunities</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowFinancialImpact(false)}
+          >
+            Back to Reports
+          </Button>
+        </div>
+        <FinancialImpactAnalysisReport />
+      </div>
+    );
+  }
+
   // Show connection warning if not connected
   if (!isConnected) {
     return (
@@ -350,6 +462,14 @@ export const Reports = () => {
                         setShowCostAnalysis(true);
                       } else if (report.title === "RCA Report") {
                         setShowRCAReport(true);
+                      } else if (report.title === "Annual Report") {
+                        setShowAnnualReport(true);
+                      } else if (report.title === "Cost Trend & Variance") {
+                        setShowCostTrendVariance(true);
+                      } else if (report.title === "Mismatch Analysis") {
+                        setShowMismatchAnalysis(true);
+                      } else if (report.title === "Financial Impact Analysis") {
+                        setShowFinancialImpact(true);
                       }
                     }}
                   >
