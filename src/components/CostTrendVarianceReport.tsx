@@ -129,6 +129,24 @@ export const CostTrendVarianceReport = () => {
     ? monthlyVariance.reduce((sum, item) => sum + item.percentChange, 0) / monthlyVariance.length
     : 0;
 
+  const isConnected = !!localStorage.getItem('googleSheetId');
+
+  if (!isConnected) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-12">
+          <div className="text-center space-y-4">
+            <FileText className="h-16 w-16 text-warning mx-auto" />
+            <h2 className="text-2xl font-semibold">ไม่พบการเชื่อมต่อ Google Sheet</h2>
+            <p className="text-muted-foreground">
+              กรุณาไปที่หน้า Data Input เพื่อเชื่อมต่อ Google Sheet ID ก่อนดูรายงาน
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Controls */}

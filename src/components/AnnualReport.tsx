@@ -50,6 +50,12 @@ export const AnnualReport = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const savedSheetId = localStorage.getItem('googleSheetId');
+      if (!savedSheetId) {
+        setLoading(false);
+        return;
+      }
+
       const [doctors, allMonthlyData] = await Promise.all([
         googleSheetsService.getDoctors(),
         googleSheetsService.getMonthlyData()
@@ -153,6 +159,24 @@ export const AnnualReport = () => {
       ? monthlyData.reduce((sum, item) => sum + item.avgRluScore, 0) / monthlyData.length 
       : 0
   };
+
+  const isConnected = !!localStorage.getItem('googleSheetId');
+
+  if (!isConnected) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-12">
+          <div className="text-center space-y-4">
+            <FileText className="h-16 w-16 text-warning mx-auto" />
+            <h2 className="text-2xl font-semibold">ไม่พบการเชื่อมต่อ Google Sheet</h2>
+            <p className="text-muted-foreground">
+              กรุณาไปที่หน้า Data Input เพื่อเชื่อมต่อ Google Sheet ID ก่อนดูรายงานประจำปี
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
