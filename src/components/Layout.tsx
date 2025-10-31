@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Activity, BarChart3, Users, FileText, Settings, User, LogOut, TrendingUp } from "lucide-react";
 import rluLogo from "@/assets/rlu-360-logo.png";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -66,19 +65,19 @@ export const Layout = ({ children }: LayoutProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50 shadow-card">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-3">
-            <img src={rluLogo} alt="RLU 360" className="h-10 w-10" />
+        <div className="w-full px-2 sm:px-4 h-16 flex items-center justify-between overflow-x-auto">
+          <Link to="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+            <img src={rluLogo} alt="RLU 360" className="h-8 w-8 sm:h-10 sm:w-10" />
             <div className="flex flex-col">
-              <span className="text-lg font-bold text-primary">RLU 360</span>
-              <span className="text-xs text-muted-foreground">Transformation Model</span>
+              <span className="text-base sm:text-lg font-bold text-primary">RLU 360</span>
+              <span className="text-xs text-muted-foreground hidden sm:block">Transformation Model</span>
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden lg:flex items-center space-x-2 xl:space-x-4 flex-shrink-0">
             {navigationItems.filter(item => canAccessRoute(item.href)).map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
@@ -87,35 +86,36 @@ export const Layout = ({ children }: LayoutProps) => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-smooth ${
+                  className={`flex items-center space-x-1 xl:space-x-2 px-2 xl:px-3 py-2 rounded-lg transition-smooth ${
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >
                   <Icon size={16} />
-                  <span className="text-sm font-medium">{t(item.name as any)}</span>
+                  <span className="text-xs xl:text-sm font-medium whitespace-nowrap">{t(item.name as any)}</span>
                 </Link>
               );
             })}
           </nav>
 
-          <div className="flex items-center space-x-3">
-            <LanguageSelector />
+          <div className="flex items-center flex-shrink-0 ml-2">
             <UserMenu />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
-        {children}
+      <main className="flex-1 w-full px-2 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
+        <div className="max-w-full">
+          {children}
+        </div>
       </main>
 
       {/* Footer */}
       <footer className="bg-card border-t border-border mt-auto">
-        <div className="container mx-auto px-4 py-4">
-          <div className="text-center text-sm text-muted-foreground">
+        <div className="w-full px-4 py-4">
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">
             Copyright © 2025 Sriwarit Siriatiyut. All rights reserved.
           </div>
         </div>
