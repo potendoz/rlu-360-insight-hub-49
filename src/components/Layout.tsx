@@ -78,7 +78,7 @@ export const Layout = ({ children }: LayoutProps) => {
             </div>
           </Link>
 
-          <nav className="hidden md:grid md:grid-cols-4 md:gap-2 md:max-w-3xl">
+          <nav className="hidden md:flex items-center space-x-6">
             {navigationItems.filter(item => canAccessRoute(item.href)).map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
