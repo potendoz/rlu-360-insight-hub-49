@@ -1,10 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Activity, BarChart3, Users, FileText, Settings, User, LogOut, TrendingUp } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Activity, BarChart3, Users, FileText, Settings, User, LogOut, TrendingUp, Menu } from "lucide-react";
 import rluLogo from "@/assets/rlu-360-logo.png";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
 
 const navigationItems = [
   { name: "nav.dashboard", href: "/dashboard", icon: BarChart3 },
@@ -59,6 +61,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const isHomePage = location.pathname === "/";
   const { t } = useI18n();
   const { user, canAccessRoute } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (isHomePage) {
     return <>{children}</>;
@@ -99,7 +102,40 @@ export const Layout = ({ children }: LayoutProps) => {
             })}
           </nav>
 
-          <div className="flex items-center flex-shrink-0 ml-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Mobile Menu */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="lg:hidden">
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64">
+                <div className="flex flex-col gap-4 mt-8">
+                  {navigationItems.filter(item => canAccessRoute(item.href)).map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.href;
+                    
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-smooth ${
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <Icon size={20} />
+                        <span className="text-sm font-medium">{t(item.name as any)}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </SheetContent>
+            </Sheet>
+            
             <UserMenu />
           </div>
         </div>
