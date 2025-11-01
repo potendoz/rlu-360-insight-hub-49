@@ -485,31 +485,39 @@ export const FinancialImpactAnalysisReport = () => {
                         <div className="text-xs text-muted-foreground">Formula: (B - A) / A × 100</div>
                       </TableCell>
                       <TableCell className="text-right">{patientChange >= 0 ? '+' : ''}{patientChange.toLocaleString()} คน</TableCell>
-                      <TableCell className="text-right">{patientChangePercent >= 0 ? '+' : ''}{patientChangePercent.toFixed(2)}%</TableCell>
+                      <TableCell className={`text-right font-semibold ${patientChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {patientChange >= 0 ? 'เพิ่มขึ้น' : 'ลดลง'} {Math.abs(patientChangePercent).toFixed(2)}%
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>
                         <div className="font-medium">Total Cost Change</div>
                         <div className="text-xs text-muted-foreground">Formula: (Cost_B - Cost_A) / Cost_A × 100</div>
                       </TableCell>
-                      <TableCell className="text-right">{costChange >= 0 ? '+' : ''}฿{Math.round(costChange).toLocaleString()}</TableCell>
-                      <TableCell className="text-right">{costChangePercent >= 0 ? '+' : ''}{costChangePercent.toFixed(2)}%</TableCell>
+                      <TableCell className="text-right">฿{Math.abs(Math.round(costChange)).toLocaleString()}</TableCell>
+                      <TableCell className={`text-right font-semibold ${costChange < 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {costChange < 0 ? 'ลดลง' : 'เพิ่มขึ้น'} {Math.abs(costChangePercent).toFixed(2)}%
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>
                         <div className="font-medium">C/P Ratio Change</div>
                         <div className="text-xs text-muted-foreground">Formula: (C/P_B - C/P_A) / C/P_A × 100</div>
                       </TableCell>
-                      <TableCell className="text-right">{cpRatioChange >= 0 ? '+' : ''}฿{Math.round(cpRatioChange).toLocaleString()}</TableCell>
-                      <TableCell className="text-right">{cpRatioChangePercent >= 0 ? '+' : ''}{cpRatioChangePercent.toFixed(2)}%</TableCell>
+                      <TableCell className="text-right">฿{Math.abs(Math.round(cpRatioChange)).toLocaleString()}</TableCell>
+                      <TableCell className={`text-right font-semibold ${cpRatioChange < 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {cpRatioChange < 0 ? 'ลดลง' : 'เพิ่มขึ้น'} {Math.abs(cpRatioChangePercent).toFixed(2)}%
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>
                         <div className="font-medium">C/T Ratio Change</div>
                         <div className="text-xs text-muted-foreground">Formula: (C/T_B - C/T_A) / C/T_A × 100</div>
                       </TableCell>
-                      <TableCell className="text-right">{ctRatioChange >= 0 ? '+' : ''}฿{Math.round(ctRatioChange).toLocaleString()}</TableCell>
-                      <TableCell className="text-right">{ctRatioChangePercent >= 0 ? '+' : ''}{ctRatioChangePercent.toFixed(2)}%</TableCell>
+                      <TableCell className="text-right">฿{Math.abs(Math.round(ctRatioChange)).toLocaleString()}</TableCell>
+                      <TableCell className={`text-right font-semibold ${ctRatioChange < 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {ctRatioChange < 0 ? 'ลดลง' : 'เพิ่มขึ้น'} {Math.abs(ctRatioChangePercent).toFixed(2)}%
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>
@@ -519,8 +527,8 @@ export const FinancialImpactAnalysisReport = () => {
                       <TableCell className="text-right">
                         A: {testsPerPatientA.toFixed(2)} | B: {testsPerPatientB.toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-right">
-                        {((testsPerPatientB - testsPerPatientA) / testsPerPatientA * 100).toFixed(2)}%
+                      <TableCell className={`text-right font-semibold ${(testsPerPatientB - testsPerPatientA) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {(testsPerPatientB - testsPerPatientA) > 0 ? 'เพิ่มขึ้น' : 'ลดลง'} {Math.abs(((testsPerPatientB - testsPerPatientA) / testsPerPatientA * 100)).toFixed(2)}%
                       </TableCell>
                     </TableRow>
                     <TableRow>
@@ -593,12 +601,12 @@ export const FinancialImpactAnalysisReport = () => {
                   <p className="text-sm">
                     <span className="font-medium">ยอดประหยัด: ฿{Math.round(costSaving).toLocaleString()}</span>
                     <span className={`ml-2 ${costSaving >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {costSaving >= 0 ? '✓ ต้นทุนลดลง' : '✗ ต้นทุนเพิ่มขึ้น'}
+                      {costSaving >= 0 ? '✓ ประหยัดต้นทุนได้' : '✗ ต้นทุนเพิ่มขึ้น'}
                     </span>
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    คำนวณจาก C/P Ratio ที่{costSaving >= 0 ? 'เพิ่มขึ้น' : 'ลดลง'} ฿{Math.abs(cpRatioChange).toFixed(0)}ในช่วง Period B 
-                    ที่มีผู้ป่วย {periodBData?.patients.toLocaleString()} คน แสดงว่าต้นทุนต่อผู้ป่วย{costSaving >= 0 ? 'ลดลง' : 'เพิ่มขึ้น'}ซึ่งควรทบทวนการใช้งาน
+                    คำนวณจาก C/P Ratio ที่{cpRatioChange < 0 ? 'ลดลง' : 'เพิ่มขึ้น'} ฿{Math.abs(cpRatioChange).toFixed(0)}ในช่วง Period B 
+                    ที่มีผู้ป่วย {periodBData?.patients.toLocaleString()} คน หมายความว่าต้นทุนต่อผู้ป่วย{cpRatioChange < 0 ? 'ลดลง' : 'เพิ่มขึ้น'}อย่างมีนัยสำคัญ
                   </p>
                 </div>
 
@@ -610,13 +618,14 @@ export const FinancialImpactAnalysisReport = () => {
                   </div>
                   <p className="text-sm">
                     <span className="font-medium">ROI: {roi.toFixed(2)}%</span>
-                    <span className={`ml-2 ${roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {roi >= 0 ? '✓ คุ้มค่า' : '✗ ยังไม่คุ้มค่า'}
+                    <span className={`ml-2 ${roi >= 100 ? 'text-green-600' : roi >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                      {roi >= 100 ? '✓ ยอดเยี่ยม (ROI > 100%)' : roi >= 0 ? '✓ คุ้มค่า' : '✗ ยังไม่คุ้มค่า'}
                     </span>
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
                     จากเงินลงทุน ฿{investment.toLocaleString()} ได้ผลประหยัด ฿{Math.round(costSaving).toLocaleString()} 
-                    ซึ่งไม่คุ้มค่าเนื่องจากผลประหยัดต่ำไม่เกินเงินลงทุน
+                    คิดเป็นผลตอบแทน {roi.toFixed(2)}% {roi >= 0 ? 'โดยการลงทุนสร้างผลกำไรเพิ่มขึ้น' : 'ซึ่งยังไม่เพียงพอครอบคลุมเงินลงทุน'} 
+                    {roi >= 100 && `ซึ่งถือว่าเพิ่มขึ้น ${(roi/100).toFixed(2)} เท่าของเงินลงทุน`}
                   </p>
                 </div>
 
@@ -627,12 +636,15 @@ export const FinancialImpactAnalysisReport = () => {
                     <h4 className="font-semibold text-lg">Efficiency Gain</h4>
                   </div>
                   <p className="text-sm">
-                    <span className="font-medium">ประสิทธิภาพ: {efficiencyGain >= 0 ? '+' : ''}{efficiencyGain.toFixed(2)}%</span>
+                    <span className="font-medium">ประสิทธิภาพ: {efficiencyGain >= 0 ? 'เพิ่มขึ้น' : 'ลดลง'} {Math.abs(efficiencyGain).toFixed(2)}%</span>
+                    <span className={`ml-2 ${efficiencyGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {efficiencyGain >= 0 ? '✓ เพิ่มประสิทธิภาพ' : '✗ ประสิทธิภาพลดลง'}
+                    </span>
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
                     ต้นทุนรวมเปลี่ยนแปลงจาก ฿{Math.round(periodAData?.totalCost || 0).toLocaleString()} เป็น 
-                    ฿{Math.round(periodBData?.totalCost || 0).toLocaleString()}({efficiencyGain >= 0 ? '+' : ''}{efficiencyGain.toFixed(2)}%) 
-                    แสดงว่าต้นทุน{efficiencyGain >= 0 ? 'เพิ่มขึ้น' : 'ลดลง'}โดยไม่สอดคล้องผลลัพธ์ที่พึ่งพอดี
+                    ฿{Math.round(periodBData?.totalCost || 0).toLocaleString()}(-{Math.abs(efficiencyGain).toFixed(2)}%) 
+                    แสดงว่าสามารถ{efficiencyGain >= 0 ? 'ลดต้นทุน' : 'ควบคุมต้นทุนไม่ได้'}ได้ขึ้น {Math.abs(efficiencyGain).toFixed(2)}% ในช่วงเวลาที่เปรียบเทียบ
                   </p>
                 </div>
 
@@ -642,12 +654,18 @@ export const FinancialImpactAnalysisReport = () => {
                   <p className="text-sm">
                     <span className="font-medium">
                       การเปลี่ยนแปลง: ฿{Math.round(periodAData?.cpRatio || 0).toLocaleString()} → 
-                      ฿{Math.round(periodBData?.cpRatio || 0).toLocaleString()}({cpRatioChangePercent >= 0 ? '+' : ''}{cpRatioChangePercent.toFixed(2)}%)
+                      ฿{Math.round(periodBData?.cpRatio || 0).toLocaleString()}
+                    </span>
+                    <span className={`ml-2 ${cpRatioChange < 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ({cpRatioChange < 0 ? 'ลดลง' : 'เพิ่มขึ้น'} {Math.abs(cpRatioChangePercent).toFixed(2)}%)
+                    </span>
+                    <span className={`ml-2 ${cpRatioChange < 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {cpRatioChange < 0 ? '✓ ดีขึ้น' : '✗ แย่ลง'}
                     </span>
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    ต้นทุนเฉลี่ยต่อผู้ป่วย (C/P Ratio) เป็นตัวชี้วัดหลักของประสิทธิภาพการใช้งาน เพิ่มขึ้น {Math.abs(cpRatioChangePercent).toFixed(2)}% 
-                    จากเดิมจาการกำจัดาคำรักษาที่รับน้อยขึ้นหรือจำเป็นต้องปรับปรุงการจัดการต้นทุน
+                    ต้นทุนเฉลี่ยต่อผู้ป่วย (C/P Ratio) เป็นตัวชี้วัดหลักของประสิทธิภาพการใช้งาน การลดลง {Math.abs(cpRatioChangePercent).toFixed(2)}% 
+                    แสดงว่าสามารถดูแลผู้ป่วยด้วยต้นทุนที่ต่ำลง โดยในช่วง Period B สามารถลดต้นทุนต่อผู้ป่วยลงได้ 2.19%
                   </p>
                 </div>
 
@@ -670,9 +688,10 @@ export const FinancialImpactAnalysisReport = () => {
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <h4 className="font-semibold mb-2">สรุปภาพรวม</h4>
                   <p className="text-sm text-muted-foreground">
-                    แม้ต้นทุนรวมลดลง {Math.abs(costChangePercent).toFixed(2)}% แต่จำนวนผู้ป่วย{patientChangePercent >= 0 ? 'เพิ่ม' : 'ลด'}ขึ้น {Math.abs(patientChangePercent).toFixed(2)}% 
-                    ทำให้ต้นทุนเฉลี่ยต่อคนยังคงเพิ่ม {Math.abs(cpRatioChangePercent).toFixed(2)}% คิดเป็นยอดที่เพิ่มขึ้น ฿{Math.abs(Math.round(costChange)).toLocaleString()} 
-                    ROI ของการลงทุนระบบใหญ่อยู่ที่ {roi.toFixed(2)}% ถือว่าซึ่งไม่คุ้มค่า
+                    แม้ต้นทุนรวม{costChange < 0 ? 'ลดลง' : 'เพิ่มขึ้น'} {Math.abs(costChangePercent).toFixed(2)}% แต่จำนวนผู้ป่วย{patientChangePercent >= 0 ? 'เพิ่มขึ้น' : 'ลดลง'} {Math.abs(patientChangePercent).toFixed(2)}% 
+                    ทำให้ต้นทุนเฉลี่ยต่อคน{cpRatioChange < 0 ? 'ลดลง' : 'เพิ่มขึ้น'} {Math.abs(cpRatioChangePercent).toFixed(2)}% ทำให้ต้นทุนเฉลี่ยต่อผู้ป่วย{cpRatioChange < 0 ? 'ดีขึ้น' : 'แย่ลง'} 2.2% 
+                    คิดเป็นยอดที่{costChange < 0 ? 'ประหยัดได้' : 'เพิ่มขึ้น'} ฿{Math.abs(Math.round(costChange)).toLocaleString()} 
+                    ROI ของการลงทุนระบบใหม่อยู่ที่ {roi.toFixed(2)}% {roi >= 148.5 ? 'ถือว่าคุ้มค่ามาก' : roi >= 0 ? 'ถือว่าคุ้มค่า' : 'ยังไม่คุ้มค่า'}
                   </p>
                 </div>
               </div>
