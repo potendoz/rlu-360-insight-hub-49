@@ -298,15 +298,27 @@ export const CostTrendVarianceReport = () => {
 
       {/* Report Content */}
       <div id="cost-variance-report" className="bg-white p-8 space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-4 border-b pb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Cost Trend & Variance Analysis Report</h1>
-          <h2 className="text-xl text-gray-600">{startMonth} {startYear} - {endMonth} {endYear}</h2>
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-            <CalendarDays className="h-4 w-4" />
-            <span>Generated on {new Date().toLocaleDateString()}</span>
-          </div>
-        </div>
+        {monthlyMetrics.length === 0 ? (
+          <Card className="p-12">
+            <div className="text-center space-y-4">
+              <FileText className="h-16 w-16 text-warning mx-auto" />
+              <h2 className="text-2xl font-semibold">ไม่พบข้อมูลในช่วงเวลาที่เลือก</h2>
+              <p className="text-muted-foreground">
+                กรุณาเลือกช่วงเวลาที่มีข้อมูลใน Google Sheet หรือตรวจสอบการเชื่อมต่อ
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="text-center space-y-4 border-b pb-6">
+              <h1 className="text-3xl font-bold text-gray-800">Cost Trend & Variance Analysis Report</h1>
+              <h2 className="text-xl text-gray-600">{startMonth} {startYear} - {endMonth} {endYear}</h2>
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                <CalendarDays className="h-4 w-4" />
+                <span>Generated on {new Date().toLocaleDateString()}</span>
+              </div>
+            </div>
 
         {/* 1. Key Financial Indicators */}
         <div className="space-y-4">
@@ -353,7 +365,7 @@ export const CostTrendVarianceReport = () => {
         </div>
 
         {/* 2. Unit Cost Trend & 3-Month Moving Average */}
-        {chartData.length > 0 && (
+        {monthlyMetrics.length > 0 && chartData.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
@@ -413,21 +425,23 @@ export const CostTrendVarianceReport = () => {
                 <div className="flex items-start gap-2">
                   <span className="text-blue-600 font-bold">•</span>
                   <p>
-                    <strong>แนวโน้มต้นทุนต่อหน่วย:</strong> ต้นทุนเฉลี่ยต่อผู้ป่วยที่ ฿{avgUnitCost.toFixed(2)} โดยมีช่วงต้นทุนต่ำสุดที่ ฿
-                    {Math.min(...monthlyMetrics.map(m => m.unitCost)).toFixed(2)} และสูงสุดที่ ฿
-                    {Math.max(...monthlyMetrics.map(m => m.unitCost)).toFixed(2)} (ส่วนต่าง ฿
-                    {(Math.max(...monthlyMetrics.map(m => m.unitCost)) - Math.min(...monthlyMetrics.map(m => m.unitCost))).toFixed(2)})
+                    <strong>แนวโน้มต้นทุนต่อหน่วย:</strong> ต้นทุนเฉลี่ยต่อผู้ป่วยที่ ฿{avgUnitCost.toFixed(2)} 
+                    {monthlyMetrics.length > 1 && ` โดยมีช่วงต้นทุนต่ำสุดที่ ฿${Math.min(...monthlyMetrics.map(m => m.unitCost)).toFixed(2)} 
+                    และสูงสุดที่ ฿${Math.max(...monthlyMetrics.map(m => m.unitCost)).toFixed(2)} 
+                    (ส่วนต่าง ฿${(Math.max(...monthlyMetrics.map(m => m.unitCost)) - Math.min(...monthlyMetrics.map(m => m.unitCost))).toFixed(2)})`}
                   </p>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-green-600 font-bold">•</span>
-                  <p>
-                    <strong>ค่าเฉลี่ยเคลื่อนที่ 3 เดือน (3M MA):</strong> ช่วยกรองความผันผวนระยะสั้นและแสดงแนวโน้มที่ใช้เพิ่งจริง ค่า 3M MA เฉลี่ออยู่ที่ ฿
-                    {(monthlyMetrics.filter(m => m.threeMonthMA !== null).reduce((sum, m) => sum + (m.threeMonthMA || 0), 0) / 
-                      monthlyMetrics.filter(m => m.threeMonthMA !== null).length).toFixed(2)} 
-                    {' '}ให้สำหรับระบบการเปลี่ยนแปลงที่ตรงการปลี่ยนเเปลงที่มีนัดคง
-                  </p>
-                </div>
+                {monthlyMetrics.filter(m => m.threeMonthMA !== null).length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-600 font-bold">•</span>
+                    <p>
+                      <strong>ค่าเฉลี่ยเคลื่อนที่ 3 เดือน (3M MA):</strong> ช่วยกรองความผันผวนระยะสั้นและแสดงแนวโน้มที่แท้จริง ค่า 3M MA เฉลี่ยอยู่ที่ ฿
+                      {(monthlyMetrics.filter(m => m.threeMonthMA !== null).reduce((sum, m) => sum + (m.threeMonthMA || 0), 0) / 
+                        monthlyMetrics.filter(m => m.threeMonthMA !== null).length).toFixed(2)} 
+                      {' '}ให้ภาพรวมการเปลี่ยนแปลงที่ตรงการเปลี่ยนแปลงที่มีนัยสำคัญ
+                    </p>
+                  </div>
+                )}
                 <div className="flex items-start gap-2">
                   <span className="text-red-600 font-bold">•</span>
                   <p>
@@ -449,7 +463,7 @@ export const CostTrendVarianceReport = () => {
         )}
 
         {/* 3. Variance vs Target Analysis */}
-        {varianceChartData.length > 0 && (
+        {monthlyMetrics.length > 0 && varianceChartData.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
               <Target className="h-5 w-5" />
@@ -522,7 +536,7 @@ export const CostTrendVarianceReport = () => {
 
 
         {/* 4. Cost Index (Base 100) */}
-        {costIndexData.length > 0 && (
+        {monthlyMetrics.length > 0 && costIndexData.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-xl font-semibold text-gray-800">Cost Index (Base 100)</h3>
             <Card className="p-6">
@@ -610,9 +624,10 @@ export const CostTrendVarianceReport = () => {
         )}
 
         {/* 5. Detailed Monthly Metrics */}
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-gray-800">Detailed Monthly Metrics</h3>
-          <div className="overflow-x-auto">
+        {monthlyMetrics.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold text-gray-800">Detailed Monthly Metrics</h3>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -721,9 +736,11 @@ export const CostTrendVarianceReport = () => {
             </Table>
           </div>
         </div>
+        )}
 
         {/* 6. Key Insights & Recommendations */}
-        <div className="space-y-4">
+        {monthlyMetrics.length > 0 && (
+          <div className="space-y-4">
           <h3 className="text-xl font-semibold text-gray-800">Key Insights & Recommendations</h3>
           <div className="space-y-3">
             <div className="flex items-start gap-3">
@@ -757,12 +774,15 @@ export const CostTrendVarianceReport = () => {
             </div>
           </div>
         </div>
+        )}
 
-        {/* Footer */}
-        <div className="border-t pt-6 text-center text-sm text-gray-500">
-          <p>RLU 360 Transformation Model - Rational Laboratory Use Analytics Platform</p>
-          <p>Cost Trend & Variance Report generated on {new Date().toLocaleDateString()} for {startMonth} {startYear} - {endMonth} {endYear}</p>
-        </div>
+            {/* Footer */}
+            <div className="border-t pt-6 text-center text-sm text-gray-500">
+              <p>RLU 360 Transformation Model - Rational Laboratory Use Analytics Platform</p>
+              <p>Cost Trend & Variance Report generated on {new Date().toLocaleDateString()} for {startMonth} {startYear} - {endMonth} {endYear}</p>
+            </div>
+          </>
+        )}
       </div>
 
       {loading && (
